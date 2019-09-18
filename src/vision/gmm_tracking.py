@@ -1,4 +1,5 @@
 import numpy as np
+import time
 import cv2
 from sklearn import mixture
 from imutils.video import FPS
@@ -49,11 +50,15 @@ innerSize = 100
 sample = np.zeros([innerSize, innerSize])
 cX, cY = 0,0
 notFound = True
+start = time.time()
+frame_num = 0
 while True:
     ret, frame = cap.read()
+    frame_num += 1
     if W is None or H is None:
         (H,W) = frame.shape[0:2]
     if notFound:
+        print('Tracking with DNN')
         model.setInput(cv2.dnn.blobFromImage(frame, size=(300,300), swapRB=True))
         output = model.forward()
 
@@ -81,18 +86,21 @@ while True:
             if sample.shape[0] > 0 and sample.shape[1] > 0:
                 cv2.imshow('sample', sample)
                     
-        cv2.imshow('frame',frame)
     else:
+        print('Tracking with only gmm')
         test = np.reshape(frame, [frame.shape[0]*frame.shape[1], 3])
         preds = gmm.predict(test)
         pred_img = np.reshape(preds*255, [frame.shape[0], frame.shape[1], 1])
         cv2.imshow('pred', pred_img.astype('uint8'))
-        contours, _ = cv2.findContours(pred_img, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(pred_img, cv2.RETR_FLOODFILL, cv2.CHAIN_APPROX_SIMPLE)
         for c in contours:
             rect = cv2.boundingRect(c)
             x,y,w,h = rect
             cv2.rectangle(frame, (x,y), (x+w, y+h), (0,255,0), 2)
-        cv2.imshow('image', frame)
+    framesps = frame_num / (time.time() - start)
+
+    cv2.putText(frame, str(framesps), (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,255,0), lineType=cv2.LINE_AA)
+    cv2.imshow('image', frame)
     
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
