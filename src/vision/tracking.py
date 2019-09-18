@@ -34,7 +34,14 @@ ct = CentroidTracker()
 model = cv2.dnn.readNetFromTensorflow('../../data/models/frozen_inference_graph.pb',
                                       '../../data/models/ssd_mobilenet_v2_coco_2018_03_29.pbtxt')
 image = cv2.imread("../../data/images/people.jpeg")
+
 cap = cv2.VideoCapture(0)
+if cap.isOpened():
+    print('Initializing Camera')
+    for i in range(10):
+        _,_ = cap.read()
+        time.sleep(0.2)
+print('Camera Initialized')
 
 fps = FPS().start()
 while(True):
