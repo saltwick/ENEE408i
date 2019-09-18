@@ -50,11 +50,8 @@ innerSize = 100
 sample = np.zeros([innerSize, innerSize])
 cX, cY = 0,0
 notFound = True
-start = time.time()
-frame_num = 0
 while True:
     ret, frame = cap.read()
-    frame_num += 1
     if W is None or H is None:
         (H,W) = frame.shape[0:2]
     if notFound:
@@ -97,9 +94,6 @@ while True:
             rect = cv2.boundingRect(c)
             x,y,w,h = rect
             cv2.rectangle(frame, (x,y), (x+w, y+h), (0,255,0), 2)
-    framesps = frame_num / (time.time() - start)
-
-    cv2.putText(frame, str(framesps), (30, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,255,0), lineType=cv2.LINE_AA)
     cv2.imshow('image', frame)
     
     if cv2.waitKey(1) & 0xFF == ord('q'):
