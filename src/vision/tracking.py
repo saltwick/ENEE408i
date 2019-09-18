@@ -1,6 +1,8 @@
 import cv2
+import time
 from imutils.video import FPS
-
+from CentroidTracker import CentroidTracker
+import numpy as np
 # Pretrained classes in the model
 classNames = {0: 'background',
               1: 'person', 2: 'bicycle', 3: 'car', 4: 'motorcycle', 5: 'airplane', 6: 'bus',
@@ -26,35 +28,47 @@ def id_class_name(class_id, classes):
         if class_id == key:
             return value
 
-
+ct = CentroidTracker()
+(H,W) = (None, None)
 # Loading model
 model = cv2.dnn.readNetFromTensorflow('../../data/models/frozen_inference_graph.pb',
                                       '../../data/models/ssd_mobilenet_v2_coco_2018_03_29.pbtxt')
 image = cv2.imread("../../data/images/people.jpeg")
 cap = cv2.VideoCapture(0)
+
 fps = FPS().start()
 while(True):
     ret, image = cap.read()
     image_height, image_width, _ = image.shape
+    if W is None or H is None:
+        (H,W) = image.shape[:2]
+
     model.setInput(cv2.dnn.blobFromImage(image, size=(300, 300), swapRB=True))
     output = model.forward()
-    # print(output[0,0,:,:].shape)
-
+    rects = []
     for detection in output[0, 0, :, :]:
         confidence = detection[2]
-        if confidence > .5:
+        if confidence > .7:
             class_id = detection[1]
             class_name=id_class_name(class_id,classNames)
-            box_x = detection[3] * image_width
-            box_y = detection[4] * image_height
-            box_width = detection[5] * image_width
-            box_height = detection[6] * image_height
-            cv2.rectangle(image, (int(box_x), int(box_y)), (int(box_width), int(box_height)), (23, 230, 210), thickness=3)
-            cv2.putText(image,class_name ,(int(box_x), int(box_y+.05*image_height)),cv2.FONT_HERSHEY_SIMPLEX,(.005*image_width),(0, 0, 255))
 
+            if class_name == "person":
+                box_x = detection[3] * image_width
+                box_y = detection[4] * image_height
+                box_width = detection[5] * image_width
+                box_height = detection[6] * image_height
+                box = detection[3:7] * np.array([W, H, W, H])
+                startX, startY, endX, endY = box.astype('int')
+                rects.append(box)
+                cv2.rectangle(image, (startX, startY), (endX, endY), (0,255,0), 2)
 
+                objects = ct.update(rects=rects)
 
-
+                for (objectID, centroid) in objects.items():
+                    text = "ID {}".format(objectID)
+                    cv2.putText(image, text, (centroid[0] - 10, centroid[1] - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255,0), 2)
+                    cv2.circle(image, (centroid[0], centroid[1]), 4, (255,0,0), -1)
 
     cv2.imshow('image', image)
     if cv2.waitKey(1) & 0xFF == ord('q'):
