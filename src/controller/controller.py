@@ -52,7 +52,7 @@ class Arduino_Thread(threading.Thread):
             if HALT:
                 print("Arduino Controller Exiting")
                 break
-
+            
             AController.send_message(encode(controls))
 
 
@@ -67,12 +67,15 @@ class Vision_Thread(threading.Thread):
         self.fps = FPS().start()
         self.tracker_width = 100
         self.debug = debug
+        self.initBB = None
 
     def run(self):
         global count
         global HALT
         global controls
-       
+        
+        self.initBB = self.tracker.initialize(self.cap.read()) 
+        print(self.initBB)
         # Webcam recording loop
         while True:
             frame = self.cap.read() 
@@ -80,7 +83,7 @@ class Vision_Thread(threading.Thread):
             if self.debug: overlay = frame.copy()
             height, width, _ = frame.shape
             centerX = int(width/2)
-            box= self.tracker.track(frame)
+            box= self.tracker.track(frame, self.initBB)
 
             # If someone was detected
             if box:
@@ -98,11 +101,15 @@ class Vision_Thread(threading.Thread):
                 
                 # Modify turn signal
                 if cX < centerX - self.tracker_width:
-                    dX = int(((centerX - cX)/(width/2))*150)
+                    dX = (centerX-self.tracker_width - cX)/(width/2 - self.tracker_width)
+                    dX = min(255,int(dX * 255))
                     controls['TurnLeft'] = dX
+                    controls['TurnRight'] = 0
                 elif cX > centerX + self.tracker_width :
-                    dX = int(((cX - centerX)/(width))*150)
+                    dX = ((cX - centerX - self.tracker_width)/ (width/2 - self.tracker_width))
+                    dX = min(255, int(dX * 255))
                     controls['TurnRight'] = dX
+                    controls['TurnLeft'] = 0
                 else:
                     dX = 0
                     controls['TurnLeft'] = dX
@@ -165,7 +172,7 @@ class Counter_Thread(threading.Thread):
             time.sleep(1)
 
 # Initialize threads
-vision = Vision_Thread(False)
+vision = Vision_Thread(True)
 counter = Counter_Thread()
 arduino = Arduino_Thread()
 

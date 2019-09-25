@@ -42,7 +42,7 @@ cap = cv2.VideoCapture(0)
 
 fps = FPS()
 fps.start()
-gmm = mixture.GaussianMixture(n_components=2, max_iter = 1000)
+gmm = mixture.GaussianMixture(n_components=3, max_iter = 1000)
 (H, W) = (None,None)
 color = (0, 255, 0)
 fit = False
@@ -50,8 +50,11 @@ innerSize = 100
 sample = np.zeros([innerSize, innerSize])
 cX, cY = 0,0
 notFound = True
+start = time.time()
+frame_id = 0
 while True:
     ret, frame = cap.read()
+    frame_id += 1
     if W is None or H is None:
         (H,W) = frame.shape[0:2]
     if notFound:
@@ -68,9 +71,12 @@ while True:
                 if class_name == "person":
                     box = detection[3:7] * np.array([W, H, W, H])
                     startX, startY, endX, endY = box.astype('int')
+                    cX = int((endX+startX)/2)
+                    cY = int((endY+startY)/2)
                     cv2.rectangle(frame, (startX, startY), (endX, endY), color, 2)
                     cv2.putText(frame, str(), (10,10), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,0,255))
-                    sample = frame[startY:endY, startX:endX, :]
+                    cv2.circle(frame, (cX, cY), 4, (0,255,0), -1)
+                    sample = frame[cY-100:cY+100, cX-70:cX+70,:]
         
                     if fit:
                         test = np.reshape(frame, [frame.shape[0]*frame.shape[1],3])
@@ -86,31 +92,31 @@ while True:
     else:
         print('Tracking with only gmm')
         test = np.reshape(frame, [frame.shape[0]*frame.shape[1], 3])
-        preds = gmm.predict(test)
+        preds = gmm.predict_proba(test)
+        preds = np.mean(preds, 1)
+          
         pred_img = np.reshape(preds*255, [frame.shape[0], frame.shape[1], 1])
         cv2.imshow('pred', pred_img.astype('uint8'))
-        contours, _ = cv2.findContours(pred_img, cv2.RETR_FLOODFILL, cv2.CHAIN_APPROX_SIMPLE)
-        for c in contours:
-            rect = cv2.boundingRect(c)
-            x,y,w,h = rect
-            cv2.rectangle(frame, (x,y), (x+w, y+h), (0,255,0), 2)
+    fs = frame_id / (time.time() - start)
+    cv2.putText(frame, str(round(fs,2)), (50,25), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,255,0), 2)
     cv2.imshow('image', frame)
     
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
     if cv2.waitKey(35) & 0xFF == ord('c'):
-        train_frames = 3
-        train = np.zeros((train_frames, frame.shape[0], frame.shape[1], 3))
+        train_frames = 10
+        train = np.zeros((train_frames, sample.shape[0], sample.shape[1], 3))
         for i in range(train_frames):
             r,f = cap.read()
-            train[i, :, :,:] = f
-        train = np.reshape(train, [frame.shape[0]*frame.shape[1]*train_frames ,3])
+            train[i, :, :,:] = f[cY-100:cY+100, cX-70:cX+70]
+        train = np.reshape(train, [sample.shape[0]*sample.shape[1]*train_frames ,3])
         gmm.fit(train)
         print('gmm trained')
         fit = True
 
     fps.update()
+
 
 fps.stop()
 print("FPS: {}".format(fps.fps()))

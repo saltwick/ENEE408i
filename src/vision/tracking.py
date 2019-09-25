@@ -1,6 +1,6 @@
 import cv2
 import time
-from imutils.video import FPS
+from imutils.video import FPS, WebcamVideoStream
 from CentroidTracker import CentroidTracker
 import numpy as np
 # Pretrained classes in the model
@@ -39,7 +39,7 @@ cap = cv2.VideoCapture(0)
 if cap.isOpened():
     print('Initializing Camera')
     for i in range(10):
-        _,_ = cap.read()
+        _, _ = cap.read()
         time.sleep(0.2)
 print('Camera Initialized')
 
