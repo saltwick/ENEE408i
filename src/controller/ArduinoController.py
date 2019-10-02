@@ -11,5 +11,5 @@ class ArduinoController():
         self.ser = serial.Serial(self.device, self.baud_rate)
 
     def send_message(self, msg):
-        #ser.write(str(msg))
-        print(msg.hex())
+#        self.ser.write(str(msg))
+        print(str(msg.hex()))
