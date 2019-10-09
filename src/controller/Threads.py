@@ -4,7 +4,7 @@ import time
 import serial
 from imutils.video import FPS, WebcamVideoStream
 import threading
-
+from flask import Flask, render_template
 from ArduinoController import ArduinoController
 import sys
 sys.path.append('..')
@@ -73,7 +73,8 @@ class Vision_Thread(threading.Thread):
         global controls
         
         self.initBB = self.tracker.initialize(self.cap.read()) 
-        print(self.initBB)
+        if (self.initBB):
+            print("Target Acquired")
         # Webcam recording loop
         while True:
             frame = self.cap.read() 
@@ -116,6 +117,7 @@ class Vision_Thread(threading.Thread):
             else:
                 controls['Missing'] = 1
                 controls['MoveForward'] = 0
+
 
             # Display turning overlay if wanted
             if self.debug: 
@@ -168,4 +170,26 @@ class Counter_Thread(threading.Thread):
 
             count += 1
             time.sleep(1)
+
+"""
+Thread class for Flask Server
+"""
+class Flask_Thread(threading.Thread):
+
+    def home(self):
+        return 'hi'
+
+    def __init__(self, app):
+        threading.Thread.__init__(self)
+        self.app = app
+        self.app.add_url_rule('/', 'home', view_func=self.home)
+        # INIT FLASK SERVER HERE
+
+
+
+    # DEFINE OTHER FUNCTIONS FOR INTENTS HERE
+
+    def run(self):
+        self.app.run(debug=False, host='0.0.0.0')   
+        # START FLASK SERVER HERE
 

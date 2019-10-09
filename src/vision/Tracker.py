@@ -57,7 +57,8 @@ class Tracker():
         (success, box) = self.cv_tracker.update(frame)
         if success:
             (x,y,w,h) = [int(v) for v in box]
-            return (x,y,w,h)
+
+            return (x + int(w/4),y,int(w/2),h)
 
 
         
