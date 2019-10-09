@@ -1,4 +1,4 @@
-import serial
+from serial import Serial
 
 class ArduinoController():
     
@@ -8,9 +8,9 @@ class ArduinoController():
         self.ser = None 
     
     def start(self):
-        self.ser = serial.Serial(self.device, self.baud_rate)
+        self.ser = Serial(self.device, self.baud_rate)
 
     def send_message(self, msg):
-#        self.ser.write(msg)
+        self.ser.write(msg)
         print(msg)
         return

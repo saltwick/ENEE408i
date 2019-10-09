@@ -11,7 +11,7 @@ sys.path.append('..')
 from vision import Tracker
 
 # Intialize Connection to Arduino
-AController = ArduinoController('device', 9600)
+AController = ArduinoController('/dev/ttyACM0', 9600)
 count = 0
 HALT = False
 change_controls = False
@@ -34,8 +34,8 @@ class Arduino_Thread(threading.Thread):
     
     # Encode control dictionary to byte array
     def encode(self,controls):
-        vals = list(controls.values())
-        data = bytearray(vals)
+        vals = [controls['MoveForward'], controls['SpeedUp'], controls['SlowDown'], controls['TurnLeft'], controls['TurnRight'], controls['Missing']]
+        data = [bytes(x) for x in vals]
         return data
 
     def run(self):
@@ -45,7 +45,7 @@ class Arduino_Thread(threading.Thread):
         global change_controls
         global AController 
 
-        #AController.start()
+        AController.start()
         while True:
             if HALT:
                 print("Arduino Controller Exiting")
@@ -88,6 +88,7 @@ class Vision_Thread(threading.Thread):
             if box:
                 # Move forwards
                 controls['MoveForward'] = 1
+                controls['Missing'] = 0
                 (x,y,w,h) = box
 
                 # Draw bounding box
@@ -145,6 +146,14 @@ class Vision_Thread(threading.Thread):
             # Q key ends vision thread
             if cv2.waitKey(1) & 0xFF == ord('q') or HALT:
                 break
+	
+            elif cv2.waitKey(1) & 255 == ord('i'):
+               self.initBB = None	
+               self.initBB = self.tracker.initialize(self.cap.read()) 
+               if (self.initBB):
+                 print("Target Acquired")
+               else:
+                 print("No target Found")
 
         self.fps.stop()
         cv2.destroyAllWindows()
