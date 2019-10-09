@@ -9,17 +9,25 @@ from ArduinoController import ArduinoController
 import sys
 sys.path.append('..')
 from vision import Tracker
-from flask_ask import Ask, statement, question
+#from flask_ask import Ask, statement, question
 
 # Intialize Connection to Arduino
-AController = ArduinoController('/dev/ttyACM0', 9600)
+AController = ArduinoController('/dev/ttyACM0', 38400)
 count = 0
 HALT = False
 change_controls = False
-follow_me = False
+follow_me = True
 
 # Control structure that gets sent to Arduino
 controls = {
+        "MoveForward": 0,
+        "SpeedUp": 0,
+        "SlowDown": 0,
+        "TurnLeft": 0,
+        "TurnRight": 0,
+        "Missing": 0
+}
+prev_controls = {
         "MoveForward": 0,
         "SpeedUp": 0,
         "SlowDown": 0,
@@ -40,19 +48,27 @@ class Arduino_Thread(threading.Thread):
         data = bytes(vals)
         return data
 
+    def controls_have_changed(self, controls, prev_controls):
+        for k,v in controls.items():
+            changed = False
+            if not(controls[k] is prev_controls[k]):
+                print(controls[k], prev_controls[k])
+                changed = True
+        return True
+
     def run(self):
         global HALT
         global count
         global controls
         global change_controls
         global AController 
-
+        global prev_controls
         AController.start()
         while True:
             if HALT:
                 print("Arduino Controller Exiting")
                 break
-            
+            time.sleep(.1) 
             AController.send_message(self.encode(controls))
 
 
@@ -93,6 +109,8 @@ class Vision_Thread(threading.Thread):
             # If someone was detected
             if box:
                 # Move forwards
+                prev_controls['MoveForward'] = controls['MoveForward']
+                prev_controls['Missing'] = controls['Missing']
                 controls['MoveForward'] = 1
                 controls['Missing'] = 0
                 (x,y,w,h) = box
@@ -109,19 +127,27 @@ class Vision_Thread(threading.Thread):
                 if cX < centerX - self.tracker_width:
                     dX = (centerX-self.tracker_width - cX)/(width/2 - self.tracker_width)
                     dX = min(255,int(dX * 255))
+                    prev_controls['TurnLeft'] = controls['TurnLeft']
+                    prev_controls['TurnRight'] = controls['TurnRight']
                     controls['TurnLeft'] = dX
                     controls['TurnRight'] = 0
                 elif cX > centerX + self.tracker_width :
                     dX = ((cX - centerX - self.tracker_width)/ (width/2 - self.tracker_width))
                     dX = min(255, int(dX * 255))
+                    prev_controls['TurnLeft'] = controls['TurnLeft']
+                    prev_controls['TurnRight'] = controls['TurnRight']
                     controls['TurnRight'] = dX
                     controls['TurnLeft'] = 0
                 else:
                     dX = 0
+                    prev_controls['TurnLeft'] = controls['TurnLeft']
+                    prev_controls['TurnRight'] = controls['TurnRight']
                     controls['TurnLeft'] = dX
                     controls['TurnRight'] = dX
             # No person - set missing and stop
             else:
+                prev_controls['Missing'] = controls['Missing']
+                prev_controls['MoveForward'] = controls['MoveForward']
                 controls['Missing'] = 1
                 controls['MoveForward'] = 0
 
@@ -206,10 +232,10 @@ class Flask_Thread(threading.Thread):
     def run(self):
         self.app.run(debug=False, host='0.0.0.0')   
         # START FLASK SERVER HERE
-
+"""
     @ask.launch
     def launched():
-    return question("Yo. I'm Big Al. If you need some kneecaps broken, I'm your man").reprompt(
+        return question("Yo. I'm Big Al. If you need some kneecaps broken, I'm your man").reprompt(
         "Give me a job or let me watch the Yanks sweep the Sox")
 
 
@@ -224,3 +250,5 @@ class Flask_Thread(threading.Thread):
         follow_me=True
         return question("Big Al is on the prowl").reprompt(
         "How much longer until I take care of this guy for good?")
+
+"""
