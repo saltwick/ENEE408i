@@ -35,7 +35,7 @@ class Arduino_Thread(threading.Thread):
     # Encode control dictionary to byte array
     def encode(self,controls):
         vals = [controls['MoveForward'], controls['SpeedUp'], controls['SlowDown'], controls['TurnLeft'], controls['TurnRight'], controls['Missing']]
-        data = [bytes(x) for x in vals]
+        data = bytes(vals)
         return data
 
     def run(self):
