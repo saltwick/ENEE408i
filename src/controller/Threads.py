@@ -197,8 +197,7 @@ class Flask_Thread(threading.Thread):
 
 
     # DEFINE OTHER FUNCTIONS FOR INTENTS HERE
-
-    def run(self):
+def run(self):
         self.app.run(debug=False, host='0.0.0.0')   
         # START FLASK SERVER HERE
 
