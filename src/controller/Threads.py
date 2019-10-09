@@ -9,12 +9,14 @@ from ArduinoController import ArduinoController
 import sys
 sys.path.append('..')
 from vision import Tracker
+from flask_ask import Ask, statement, question
 
 # Intialize Connection to Arduino
 AController = ArduinoController('/dev/ttyACM0', 9600)
 count = 0
 HALT = False
 change_controls = False
+follow_me = False
 
 # Control structure that gets sent to Arduino
 controls = {
@@ -71,6 +73,10 @@ class Vision_Thread(threading.Thread):
         global count
         global HALT
         global controls
+        global follow_me
+        
+        while (not follow_me):
+            pass
         
         self.initBB = self.tracker.initialize(self.cap.read()) 
         if (self.initBB):
@@ -197,7 +203,24 @@ class Flask_Thread(threading.Thread):
 
 
     # DEFINE OTHER FUNCTIONS FOR INTENTS HERE
-def run(self):
+    def run(self):
         self.app.run(debug=False, host='0.0.0.0')   
         # START FLASK SERVER HERE
 
+    @ask.launch
+    def launched():
+    return question("Yo. I'm Big Al. If you need some kneecaps broken, I'm your man").reprompt(
+        "Give me a job or let me watch the Yanks sweep the Sox")
+
+
+    @ask.intent('AMAZON.FallbackIntent')
+    def default():
+        return question("Big Al don't know what you mean. Do you want me to break some kneecaps?").reprompt(
+            "Give me a job or let me watch the Yanks sweep the Sox")
+
+
+    @ask.intent('FollowIntent')
+    def followMe(command):
+        follow_me=True
+        return question("Big Al is on the prowl").reprompt(
+        "How much longer until I take care of this guy for good?")
