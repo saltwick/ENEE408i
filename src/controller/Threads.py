@@ -4,6 +4,8 @@ import time
 import serial
 from imutils.video import FPS, WebcamVideoStream
 import threading
+from threading import Lock
+
 from flask import Flask, render_template
 from ArduinoController import ArduinoController
 import sys
@@ -11,13 +13,13 @@ sys.path.append('..')
 from vision import Tracker
 #from flask_ask import Ask, statement, question
 
+lock = Lock()
 # Intialize Connection to Arduino
-AController = ArduinoController('/dev/ttyACM0', 38400)
+AController = ArduinoController('/dev/ttyACM0', 38400, lock)
 count = 0
 HALT = False
 change_controls = False
 follow_me = True
-
 # Control structure that gets sent to Arduino
 controls = {
         "MoveForward": 0,
@@ -45,17 +47,15 @@ class Arduino_Thread(threading.Thread):
     # Encode control dictionary to byte array
     def encode(self,controls):
         vals = [controls['MoveForward'], controls['SpeedUp'], controls['SlowDown'], controls['TurnLeft'], controls['TurnRight'], controls['Missing']]
-        data = bytes(vals)
+        
+        data = vals
         return data
 
     def controls_have_changed(self, controls, prev_controls):
         for k,v in controls.items():
-            changed = False
-            if not(controls[k] is prev_controls[k]):
-                print(controls[k], prev_controls[k])
-                changed = True
-        return True
-
+            if controls[k] !=  prev_controls[k]:
+                return True
+        return False
     def run(self):
         global HALT
         global count
@@ -68,8 +68,10 @@ class Arduino_Thread(threading.Thread):
             if HALT:
                 print("Arduino Controller Exiting")
                 break
-            time.sleep(.1) 
-            AController.send_message(self.encode(controls))
+            time.sleep(.2) 
+
+            if self.controls_have_changed(controls, prev_controls):
+                AController.send_message(self.encode(controls))
 
 
 """
@@ -79,7 +81,7 @@ class Vision_Thread(threading.Thread):
     def __init__(self,debug):
         threading.Thread.__init__(self)
         self.cap = WebcamVideoStream(src=0).start()
-        self.tracker = Tracker.Tracker(0.7)
+        self.tracker = Tracker.Tracker(0.8)
         self.fps = FPS().start()
         self.tracker_width = 100
         self.debug = debug
@@ -111,6 +113,9 @@ class Vision_Thread(threading.Thread):
                 # Move forwards
                 prev_controls['MoveForward'] = controls['MoveForward']
                 prev_controls['Missing'] = controls['Missing']
+                prev_controls['TurnLeft'] = controls['TurnLeft']
+                prev_controls['TurnRight'] = controls['TurnRight']
+
                 controls['MoveForward'] = 1
                 controls['Missing'] = 0
                 (x,y,w,h) = box
@@ -127,27 +132,19 @@ class Vision_Thread(threading.Thread):
                 if cX < centerX - self.tracker_width:
                     dX = (centerX-self.tracker_width - cX)/(width/2 - self.tracker_width)
                     dX = min(255,int(dX * 255))
-                    prev_controls['TurnLeft'] = controls['TurnLeft']
-                    prev_controls['TurnRight'] = controls['TurnRight']
                     controls['TurnLeft'] = dX
                     controls['TurnRight'] = 0
                 elif cX > centerX + self.tracker_width :
                     dX = ((cX - centerX - self.tracker_width)/ (width/2 - self.tracker_width))
                     dX = min(255, int(dX * 255))
-                    prev_controls['TurnLeft'] = controls['TurnLeft']
-                    prev_controls['TurnRight'] = controls['TurnRight']
                     controls['TurnRight'] = dX
                     controls['TurnLeft'] = 0
                 else:
                     dX = 0
-                    prev_controls['TurnLeft'] = controls['TurnLeft']
-                    prev_controls['TurnRight'] = controls['TurnRight']
                     controls['TurnLeft'] = dX
                     controls['TurnRight'] = dX
             # No person - set missing and stop
             else:
-                prev_controls['Missing'] = controls['Missing']
-                prev_controls['MoveForward'] = controls['MoveForward']
                 controls['Missing'] = 1
                 controls['MoveForward'] = 0
 
