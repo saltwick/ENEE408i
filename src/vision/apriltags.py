@@ -42,9 +42,9 @@ while True:
         print(r.tag_family, r.tag_id)
         corners = r.corners
         corners = np.ascontiguousarray(np.array(corners, dtype=np.float32).reshape((4,2,1)))
-        print(world_points[r.tag_id], corners, cameraMatrix, distCoeffs)
-#        retval, rvec, tvec = cv2.solvePnP(world_points, corners, cameraMatrix, np.zeros((4,1)))
-#        print(retval,rvec,tvec)
+#        print(world_points[r.tag_id], corners, cameraMatrix, distCoeffs)
+        retval, rvec, tvec = cv2.solvePnP(world_points, corners, cameraMatrix, np.zeros((4,1)))
+        print(retval,rvec,tvec)
         for c in corners:
             c = tuple([int(x) for x in c])
             gray = cv2.circle(gray, c, 5, (255,0,0), 1)
