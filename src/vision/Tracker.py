@@ -27,7 +27,7 @@ class Tracker():
         self.model = cv2.dnn.readNetFromTensorflow('../../data/models/frozen_inference_graph.pb',
                                       '../../data/models/ssd_mobilenet_v2_coco_2018_03_29.pbtxt')
         self.confidence = confidence
-        self.cv_tracker = cv2.TrackerCSRT_create()
+        self.cv_tracker = cv2.TrackerCSRT()
 
     def id_class_name(self, class_id, classes):
         for key, value in classes.items():

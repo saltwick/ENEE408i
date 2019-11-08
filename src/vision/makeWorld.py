@@ -1,13 +1,18 @@
 import json
 import numpy as np
+from collections import defaultdict
+worldPoints = defaultdict(list)
 
-worldPoints = {}
+tags = [x for x in range(43,50)]
+tags = tags + [x for x in range(0,9)]
 
-worldPoints[0] = np.array([[0,0,0],[0,1,0],[1,1,0],[1,0,0]]).tolist()
-worldPoints[1] = np.array([[10,0,0],[10,1,0],[11,-1,0],[9,-1,0]]).tolist()
-worldPoints[2] = np.array([[20,0,0],[20,1,0],[11,-1,0],[9,-1,0]]).tolist()
-worldPoints[3] = np.array([[30,0,0],[30,1,0],[11,-1,0],[9,-1,0]]).tolist()
+xs = list(range(-35, 45, 5))
+for i,t in enumerate(tags):
+    x = xs[i]
+    y = 0
+    z = 0
+    worldPoints[t] = [[x,y,z], [x+1, y, z], [x+1,y-1,z], [x,y-1,z]]
+
 
 with open('worldPoints.json', 'w') as f:
     json.dump(worldPoints, f)
-
