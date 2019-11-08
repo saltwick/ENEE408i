@@ -2,7 +2,7 @@ from serial import Serial
 
 class ArduinoController():
     
-    def __init__(self, device, baud, lock):
+    def __init__(self, device, baud, lock=None):
         self.device = device
         self.baud_rate = baud
         self.ser = None 

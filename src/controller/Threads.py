@@ -5,7 +5,9 @@ import serial
 from imutils.video import FPS, WebcamVideoStream
 import threading
 from threading import Lock
-
+import apriltag
+import json
+from math import asin, atan2
 from flask import Flask, render_template
 from ArduinoController import ArduinoController
 import sys
@@ -13,9 +15,8 @@ sys.path.append('..')
 from vision import Tracker
 #from flask_ask import Ask, statement, question
 
-lock = Lock()
 # Intialize Connection to Arduino
-AController = ArduinoController('/dev/ttyACM0', 38400, lock)
+AController = ArduinoController('/dev/ttyACM0', 38400)
 count = 0
 HALT = False
 change_controls = False
@@ -73,6 +74,78 @@ class Arduino_Thread(threading.Thread):
             if self.controls_have_changed(controls, prev_controls):
                 AController.send_message(self.encode(controls))
 
+
+
+"""
+Thread class for April Tag Localizing
+
+"""
+class Location_Thread(threading.Thread):
+    def __init__(self, lock):
+        threading.Thread.__init__(self)
+        self.cap = WebcamVideoStream(src=0).start()
+        self.det = apriltag.Detector()
+        self.lock = lock
+        # Load camera data
+        with open('../vision/cameraParams.json', 'r') as f:
+            data = json.load(f)
+
+        self.cameraMatrix =np.array(data['cameraMatrix'], dtype=np.float32)
+        self.distCoeffs = np.array(data['distCoeffs'], dtype=np.float32)
+
+        # Load world points
+        self.world_points = {}
+        with open('../vision/worldPoints.json', 'r') as f:
+            data = json.load(f)
+
+        for k,v in data.items():
+            self.world_points[int(k)] = np.array(v, dtype=np.float32).reshape((4,3,1))
+
+    def get_orientation(self,R):
+        roll = atan2(-R[2][1], R[2][2])
+        pitch = asin(R[2][0])
+        yaw = atan2(-R[1][0], R[0][0])
+
+        return yaw, pitch, roll
+    
+    def run(self):
+        global HALT
+        while True:
+            frame = self.cap.read()
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            res = self.det.detect(gray)
+
+            for r in res:
+                corners = r.corners
+                tag_id = r.tag_id
+                corners = np.array(corners, dtype=np.float32).reshape((4,2,1))
+                # Draw circles on tags
+                for c in corners:
+                    c = tuple([int(x) for x in c])
+                    frame = cv2.circle(frame, c, 5, (255,0,0), 1)
+                # get rotation and translation vector using solvePnP
+                r, rot, t = cv2.solvePnP(self.world_points[tag_id], corners, self.cameraMatrix, self.distCoeffs)
+                # convert to rotation matrix
+                rot_mat, _ = cv2.Rodrigues(rot)
+
+                # Use rotation matrix to get pose = -R * t (matrix mul w/ @)
+                R = rot_mat.transpose()
+                pose = -R @ t
+
+                with self.lock:
+                    # Display yaw/pitch/roll and pose
+                    print("Pose: ", pose)
+                    yaw, pitch, roll = self.get_orientation(R)
+                    print("Yaw: {} \n Pitch: {} \n Roll: {}".format(yaw,pitch,roll))
+
+            # Display frame
+            cv2.imshow('frame', frame)
+            
+            # Q to quit
+            if cv2.waitKey(1) & 0xFF == ord('q') or HALT:
+                break
+        HALT = True
+        cv2.destroyAllWindows()
 
 """
 Thread class for Vision System
