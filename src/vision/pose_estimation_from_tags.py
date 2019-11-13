@@ -3,7 +3,7 @@ import cv2
 import json
 import apriltag
 from imutils.video import WebcamVideoStream
-from math import atan2, asin
+from math import atan2, asin, sin, cos,radians
 
 """
     Helper Function for converting rotation matrix R to yaw/pitch/roll
@@ -38,7 +38,7 @@ for k,v in data.items():
     world_points[int(k)] = np.array(v, dtype=np.float32).reshape((4,3,1))
 
 # Video Loop
-cap = WebcamVideoStream(src=2).start()
+cap = WebcamVideoStream(src=0).start()
 area = np.ones((600,600))*255
 
 area = cv2.line(area,(300,0), (300,600), (0,255,0), 1)
@@ -49,6 +49,8 @@ while True:
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     res = det.detect(gray)
     poses = [] 
+    yaws = []
+    area2 = area.copy()
     for r in res:
         corners = r.corners
         tag_id = r.tag_id
@@ -67,18 +69,30 @@ while True:
         pose = -R @ t
 
         # Display yaw/pitch/roll and pose
-        print("Tag: {}".format(tag_id))
+    #    print("Tag: {}".format(tag_id))
         poses.append(pose)
         yaw, pitch, roll = get_orientation(cameraMatrix, R, t)
-        print("Yaw: {} \n Pitch: {} \n Roll: {}".format(yaw,pitch,roll))
-  
+        yaws.append(yaw)
+#        print("Yaw: {} \n Pitch: {} \n Roll: {}".format(yaw,pitch,roll))
+          
     # Average poses and display on a map
     if len(poses) > 0:
         avg_pose = sum(poses) / len(poses)
+        for i,c in enumerate(avg_pose):
+            avg_pose[i] = list(map(lambda x: x*4, c))
+
         area2 = cv2.circle(area2, (avg_pose[0]+300, avg_pose[2]+300), 5, (0,0,255),2)
-        cv2.imshow('map', area2)
-        print("Pose: ", avg_pose)
-    area2 = area.copy()
+#        print("Pose: ", avg_pose)
+
+    if len(yaws) > 0:
+        avg_yaw = sum(yaws) / len(yaws)
+        p1 = (avg_pose[0] + 300 ,avg_pose[2] + 300)
+        d = 30
+        p2 = (p1[0] - d*sin(radians(avg_yaw)), p1[1] - d * cos(radians(avg_yaw)))
+        print(avg_yaw, p1,p2)
+        area2 = cv2.arrowedLine(area2, p1, p2, (0,255,0), 2)
+
+    cv2.imshow('map', area2)
     # Display frame
     cv2.imshow('frame', frame)
     
