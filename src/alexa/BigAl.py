@@ -15,12 +15,29 @@ class AlexaThread(threading.Thread):
         threading.Thread.__init__(self)
         self.app = app
 
-        #self.app.add_url_rule('/', 'home', view_func=self.home)
-        
     def run(self):
         self.app.run(debug=False, host='127.0.0.1')   
 
-    
+    def halt():
+	    valueToWrite= 0
+	    ser.write(struct.pack('>B', valueToWrite))
+
+    def right():
+        valueToWrite= 2
+        ser.write(struct.pack('>B', valueToWrite))
+
+    def left():
+        valueToWrite= 1
+        ser.write(struct.pack('>B', valueToWrite))
+
+    def forward():
+        valueToWrite= 3
+        ser.write(struct.pack('>B', valueToWrite))
+
+    def backward():
+        valueToWrite= 4
+        ser.write(struct.pack('>B', valueToWrite))
+
     @ask.launch
     def launched():
         return question("Yo. I'm Big Al. If you need some kneecaps broken, I'm your man").reprompt(
@@ -31,6 +48,38 @@ class AlexaThread(threading.Thread):
     def default():
         return question("Big Al don't know what you mean. Do you want me to break some kneecaps?").reprompt(
             "Give me a job or let me watch the Yanks sweep the Sox")
+
+
+    @ask.intent('MoveIntent')
+    def move(direction):
+        msg = ""
+        if direction == 'left':
+            # left()
+            # time.sleep(1.0)
+            # halt()
+            msg = "Big Al has protected his left side blind spot"
+        elif direction == 'right':
+            # right()
+            # time.sleep(1.0)
+            # halt()
+            msg = "There's a ton of cocaine to the right of me. Big Al's moving in"
+        elif direction == 'forward':
+            # forward()
+            # time.sleep(4.0)
+            # halt()
+            msg = "Big Al moving in for the kill"
+        elif direction == 'backward':
+            # backward()
+            # time.sleep(2.0)
+            # halt()
+            msg = "Big Al don't back down from nobody. Let me take a swing at him"
+        elif direction == 'halt':
+            # halt()
+            msg = "Big Al is staying right here"
+        elif direction == "move":
+            return question("In what direction, bozo?").reprompt("Tell me where to go or let me die in peace")	
+        return question(msg).reprompt("Now what?")
+
 
     # @ask.intent('FollowIntent')
     # def followMe(command):
