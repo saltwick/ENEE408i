@@ -5,10 +5,13 @@ import socket
 import sys
 import errno
 from queue import *
+import serial.tools.list_ports
+import serial
 
 passedMessage = Queue()
 app = Flask(__name__)
 ask = Ask(app, '/')
+arduinoMessage = Queue()
 
 class AlexaThread(threading.Thread):
     def __init__(self, app):
@@ -16,11 +19,11 @@ class AlexaThread(threading.Thread):
         self.app = app
 
         #self.app.add_url_rule('/', 'home', view_func=self.home)
-        
-    def run(self):
-        self.app.run(debug=False, host='127.0.0.1')   
 
-    
+    def run(self):
+        self.app.run(debug=False, host='127.0.0.1')
+
+
     @ask.launch
     def launched():
         return question("Yo. I'm Big Al. If you need some kneecaps broken, I'm your man").reprompt(
@@ -45,13 +48,13 @@ class AlexaThread(threading.Thread):
 
     @ask.intent('DistressIntent')
     def distress():
-        
+
         passedMessage.put("distress: 2.25,3.14")
-        
+
         return question("Distress signal sent").reprompt(
             "Move out. We got a job to do.")
 
-        
+
 class ClientThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
@@ -88,7 +91,7 @@ class ClientThread(threading.Thread):
                     message = passedMessage.get()
                 # Wait for user to input a message
                 # If message is not empty - send it
-                
+
                 if message:
                     # Encode message to bytes, prepare header and convert to bytes, like for username above, then send
                     message = message.encode('utf-8')
@@ -150,9 +153,30 @@ class ClientThread(threading.Thread):
         t2.start()
 
 
+class CommToArduino(threading.Thread):
+    def __init__(self):
+        # find arduino port
+        portArduino = ""
+        for port in list(serial.tools.list_ports.comports()):
+            if "Arduino" in port.manufacturer:
+                portArduino = port.device
+                break
+        threading.Thread.__init__(self)
+        self.serial = serial.Serial(portArduino, 38400)
+
+    def run(self):
+        while True:
+            if not arduinoMessage.empty():
+                self.serial.write(arduinoMessage.get())
+
+
+
+
 client = ClientThread()
 alexa = AlexaThread(app)
 
 client.start()
 alexa.start()
 
+commToArduino = CommToArduino()
+commToArduino.start()
