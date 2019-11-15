@@ -62,16 +62,22 @@ class AlexaThread(threading.Thread):
             # time.sleep(1.0)
             # halt()
             msg = "Big Al has protected his left side blind spot"
+            arduinoMessage.put([0,0,0,50,0,0])
+
         elif direction == 'right':
             # right()
             # time.sleep(1.0)
             # halt()
             msg = "There's a ton of cocaine to the right of me. Big Al's moving in"
+            arduinoMessage.put([0,0,0,0,50,0])
+
         elif direction == 'forward':
             # forward()
             # time.sleep(4.0)
             # halt()
             msg = "Big Al moving in for the kill"
+            arduinoMessage.put([50,0,0,0,0,0])
+
         elif direction == 'backward':
             # backward()
             # time.sleep(2.0)
@@ -80,6 +86,8 @@ class AlexaThread(threading.Thread):
         elif direction == 'halt':
             # halt()
             msg = "Big Al is staying right here"
+            arduinoMessage.put([0,0,0,0,0,0])
+
         elif direction == "move":
             return question("In what direction, bozo?").reprompt("Tell me where to go or let me die in peace")	
         return question(msg).reprompt("Now what?")
@@ -208,11 +216,12 @@ class CommToArduino(threading.Thread):
         # find arduino port
         portArduino = ""
         for port in list(serial.tools.list_ports.comports()):
-            if "Arduino" in port.manufacturer:
+            if "Arduino" in str(port.manufacturer):
                 portArduino = port.device
                 break
-        threading.Thread.__init__(self)
         self.serial = serial.Serial(portArduino, 38400)
+        threading.Thread.__init__(self)
+
 
     def run(self):
         while True:
