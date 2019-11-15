@@ -38,7 +38,7 @@ for k,v in data.items():
     world_points[int(k)] = np.array(v, dtype=np.float32).reshape((4,3,1))
 
 # Video Loop
-cap = WebcamVideoStream(src=0).start()
+cap = WebcamVideoStream(src=2).start()
 area = np.ones((600,600))*255
 
 area = cv2.line(area,(300,0), (300,600), (0,255,0), 1)
