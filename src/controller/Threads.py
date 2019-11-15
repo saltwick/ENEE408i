@@ -13,6 +13,8 @@ from ArduinoController import ArduinoController
 import sys
 sys.path.append('..')
 from vision import Tracker
+from vision import locator
+from math import sin, cos, radians
 #from flask_ask import Ask, statement, question
 
 # Intialize Connection to Arduino
@@ -83,67 +85,48 @@ Thread class for April Tag Localizing
 class Location_Thread(threading.Thread):
     def __init__(self, lock):
         threading.Thread.__init__(self)
-        self.cap = WebcamVideoStream(src=0).start()
-        self.det = apriltag.Detector()
+        self.cap = WebcamVideoStream(src=2).start()
         self.lock = lock
-        # Load camera data
-        with open('../vision/cameraParams.json', 'r') as f:
-            data = json.load(f)
+        self.loc = locator.Locator() 
+        self.area_size = 600
+        self.area = np.ones((self.area_size,self.area_size))*255
+        self.area = cv2.line(self.area,(self.area_size//2,0),
+                (self.area_size//2,self.area_size), (0,255,0), 1)
+        self.area = cv2.line(self.area, (0, self.area_size//2),
+                (self.area_size,self.area_size//2), (0,255,0), 1)
 
-        self.cameraMatrix =np.array(data['cameraMatrix'], dtype=np.float32)
-        self.distCoeffs = np.array(data['distCoeffs'], dtype=np.float32)
+    def clear_area(self):
+        self.area = np.ones((600,600))*255
+        self.area = cv2.line(self.area,(300,0), (300,600), (0,255,0), 1)
+        self.area = cv2.line(self.area, (0, 300), (600,300), (0,255,0), 1)
 
-        # Load world points
-        self.world_points = {}
-        with open('../vision/worldPoints.json', 'r') as f:
-            data = json.load(f)
-
-        for k,v in data.items():
-            self.world_points[int(k)] = np.array(v, dtype=np.float32).reshape((4,3,1))
-
-    def get_orientation(self,R):
-        roll = atan2(-R[2][1], R[2][2])
-        pitch = asin(R[2][0])
-        yaw = atan2(-R[1][0], R[0][0])
-
-        return yaw, pitch, roll
-    
     def run(self):
         global HALT
+        c = 0
+        mul = 4
+        d = 30
         while True:
+            c += 1
             frame = self.cap.read()
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            res = self.det.detect(gray)
-
-            for r in res:
-                corners = r.corners
-                tag_id = r.tag_id
-                corners = np.array(corners, dtype=np.float32).reshape((4,2,1))
-                # Draw circles on tags
-                for c in corners:
-                    c = tuple([int(x) for x in c])
-                    frame = cv2.circle(frame, c, 5, (255,0,0), 1)
-                # get rotation and translation vector using solvePnP
-                r, rot, t = cv2.solvePnP(self.world_points[tag_id], corners, self.cameraMatrix, self.distCoeffs)
-                # convert to rotation matrix
-                rot_mat, _ = cv2.Rodrigues(rot)
-
-                # Use rotation matrix to get pose = -R * t (matrix mul w/ @)
-                R = rot_mat.transpose()
-                pose = -R @ t
-
-                with self.lock:
-                    # Display yaw/pitch/roll and pose
-                    print("Pose: ", pose)
-                    yaw, pitch, roll = self.get_orientation(R)
-                    print("Yaw: {} \n Pitch: {} \n Roll: {}".format(yaw,pitch,roll))
+            ret, pose, yaw = self.loc.locate(frame, c)
+            if ret:
+                h1 = (mul*pose[0] + self.area_size//2, mul*pose[2] + self.area_size//2)
+                h2 = (h1[0] - d*sin(radians(yaw)), h1[1] - d*cos(radians(yaw)))
+                self.area = cv2.circle(self.area, h1, 5, (0,0,255),2)
+                self.area = cv2.arrowedLine(self.area, h1, h2,
+                        (0,255,0), 2)
 
             # Display frame
             cv2.imshow('frame', frame)
+
+            # Display map
+            cv2.imshow('map', self.area)
             
+            self.clear_area()
             # Q to quit
             if cv2.waitKey(1) & 0xFF == ord('q') or HALT:
                 break
+
         HALT = True
         cv2.destroyAllWindows()
 
