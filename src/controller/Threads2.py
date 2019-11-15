@@ -5,20 +5,17 @@ import serial
 from imutils.video import FPS, WebcamVideoStream
 import threading
 from threading import Lock
-import apriltag
-import json
-from math import asin, atan2, sqrt
+
 from flask import Flask, render_template
 from ArduinoController import ArduinoController
 import sys
 sys.path.append('..')
 from vision import Tracker
-from vision import locator
-from math import sin, cos, radians
 #from flask_ask import Ask, statement, question
 
+lock = Lock()
 # Intialize Connection to Arduino
-AController = ArduinoController('/dev/ttyACM0', 38400)
+AController = ArduinoController('/dev/ttyACM0', 38400, lock)
 count = 0
 HALT = False
 change_controls = False
@@ -39,12 +36,6 @@ prev_controls = {
         "TurnLeft": 0,
         "TurnRight": 0,
         "Missing": 0
-}
-
-POSE = {
-    "x": 0,
-    "y": 0,
-    "heading": 0
 }
 """
 Thread class for Arduino Control
@@ -83,104 +74,6 @@ class Arduino_Thread(threading.Thread):
                 AController.send_message(self.encode(controls))
 
 
-class Navigation_Thread(threading.Thread):
-    def __init__(self, lock):
-        threading.Thread.__init__(self)
-        self.lock = lock
-   
-    def dist(self, x1, y1, x2, y2):
-        return sqrt((x2-x1)**2 + (y2-y1)**2) 
-
-    def goto(self, x,y):
-        global POSE
-        global controls
-        pX = POSE['x']
-        pY = POSE['y']
-        ang = POSE['heading']
-        target = atan2(y-pY, x-pX)
-        ang_buff = 0.5
-        pos_buff = 5
-        print(radians(ang), target)
-        while not(target - ang_buff < radians(ang) < target + ang_buff):
-            ang = POSE['heading']
-            controls['TurnLeft'] = 50
-
-        controls['TurnLeft'] = 0
-        print(self.dist(pX, pY, x, y))        
-        while self.dist(pX, pY, x,y) > pos_buff:
-            pX = POSE['x']
-            pY = POSE['y']
-            controls['MoveForward'] = 50
-        
-        controls['MoveForward'] = 0
-
-        with self.lock:
-            print("Arrived at location {}".format((x,y)))
-
-    def run(self):
-        print("going to origin")
-        while True: 
-            self.goto(0,0)
-        
-        
-"""
-Thread class for April Tag Localizing
-
-"""
-class Location_Thread(threading.Thread):
-    def __init__(self, lock):
-        threading.Thread.__init__(self)
-        self.cap = WebcamVideoStream(src=0).start()
-        self.lock = lock
-        self.loc = locator.Locator() 
-        self.area_size = 600
-        self.area = np.ones((self.area_size,self.area_size))*255
-        self.area = cv2.line(self.area,(self.area_size//2,0),
-                (self.area_size//2,self.area_size), (0,255,0), 1)
-        self.area = cv2.line(self.area, (0, self.area_size//2),
-                (self.area_size,self.area_size//2), (0,255,0), 1)
-
-    def clear_area(self):
-        self.area = np.ones((600,600))*255
-        self.area = cv2.line(self.area,(300,0), (300,600), (0,255,0), 1)
-        self.area = cv2.line(self.area, (0, 300), (600,300), (0,255,0), 1)
-
-    def run(self):
-        global HALT
-        global controls
-        global POSE
-        c = 0
-        mul = 4
-        d = 30
-        while True:
-            c += 1
-            frame = self.cap.read()
-            ret, pose, yaw = self.loc.locate(frame, c)
-            if ret:
-                h1 = (mul*pose[0] + self.area_size//2, mul*pose[2] + self.area_size//2)
-                h2 = (h1[0] - d*sin(radians(yaw)), h1[1] - d*cos(radians(yaw)))
-                self.area = cv2.circle(self.area, h1, 5, (0,0,255),2)
-                self.area = cv2.arrowedLine(self.area, h1, h2,
-                        (0,255,0), 2)
-                POSE['x'] = pose[0]
-                POSE['y'] = pose[2]
-                POSE['heading'] = yaw
-            
-
-            # Display frame
-            cv2.imshow('frame', frame)
-
-            # Display map
-            cv2.imshow('map', self.area)
-            
-            self.clear_area()
-            # Q to quit
-            if cv2.waitKey(1) & 0xFF == ord('q') or HALT:
-                break
-
-        HALT = True
-        cv2.destroyAllWindows()
-
 """
 Thread class for Vision System
 """
@@ -203,9 +96,9 @@ class Vision_Thread(threading.Thread):
         while (not follow_me):
             pass
         
-        self.initBB = self.tracker.initialize(self.cap.read()) 
-        if (self.initBB):
-            print("Target Acquired")
+        #self.initBB = self.tracker.initialize(self.cap.read()) 
+        #if (self.initBB):
+        #    print("Target Acquired")
         # Webcam recording loop
         while True:
             frame = self.cap.read() 
@@ -213,8 +106,8 @@ class Vision_Thread(threading.Thread):
             if self.debug: overlay = frame.copy()
             height, width, _ = frame.shape
             centerX = int(width/2)
-            box= self.tracker.track(frame, self.initBB)
-
+            box = None
+            #box= self.tracker.track(frame, self.initBB)
             # If someone was detected
             if box:
                 # Move forwards
@@ -269,8 +162,8 @@ class Vision_Thread(threading.Thread):
                 cv2.addWeighted(overlay, 0.5, frame, 1-0.5, 0, frame)
 
             # Always display tracking frame
-            cv2.line(frame, (centerX-self.tracker_width, 0), (centerX-self.tracker_width, height),
-                    (0,0,255),2)
+            cv2.line(frame, (centerX-self.tracker_width, 0), (centerX-self.tracker_width, height), 
+                    (0,0,255),2)    
             cv2.line(frame, (centerX+self.tracker_width, 0), (centerX+self.tracker_width, height),
                     (0,0,255),2)
 
@@ -282,7 +175,7 @@ class Vision_Thread(threading.Thread):
             # Q key ends vision thread
             if cv2.waitKey(1) & 0xFF == ord('q') or HALT:
                 break
-	
+        
             elif cv2.waitKey(1) & 255 == ord('i'):
                self.initBB = None	
                self.initBB = self.tracker.initialize(self.cap.read()) 
