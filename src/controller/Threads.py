@@ -26,7 +26,7 @@ follow_me = True
 # Control structure that gets sent to Arduino
 controls = {
         "MoveForward": 0,
-        "SpeedUp": 0,
+        "MoveBackward": 0,
         "SlowDown": 0,
         "TurnLeft": 0,
         "TurnRight": 0,
@@ -34,7 +34,7 @@ controls = {
 }
 prev_controls = {
         "MoveForward": 0,
-        "SpeedUp": 0,
+        "MoveBackward": 0,
         "SlowDown": 0,
         "TurnLeft": 0,
         "TurnRight": 0,
@@ -42,8 +42,8 @@ prev_controls = {
 }
 
 POSE = {
-    "x": 0,
-    "y": 0,
+    "x": np.array([100]),
+    "y": np.array([100]),
     "heading": 0
 }
 """
@@ -55,7 +55,7 @@ class Arduino_Thread(threading.Thread):
     
     # Encode control dictionary to byte array
     def encode(self,controls):
-        vals = [controls['MoveForward'], controls['SpeedUp'], controls['SlowDown'], controls['TurnLeft'], controls['TurnRight'], controls['Missing']]
+        vals = [controls['MoveForward'], controls['MoveBackward'], controls['SlowDown'], controls['TurnLeft'], controls['TurnRight'], controls['Missing']]
         
         data = vals
         return data
@@ -87,6 +87,7 @@ class Navigation_Thread(threading.Thread):
     def __init__(self, lock):
         threading.Thread.__init__(self)
         self.lock = lock
+        self.speed = 10
    
     def dist(self, x1, y1, x2, y2):
         return sqrt((x2-x1)**2 + (y2-y1)**2) 
@@ -94,13 +95,59 @@ class Navigation_Thread(threading.Thread):
     def goto(self, x,y):
         global POSE
         global controls
-        pX = POSE['x']
-        pY = POSE['y']
+        pX = POSE['x'].item()
+        pY = POSE['y'].item()
         ang = POSE['heading']
-        target = atan2(y-pY, x-pX)
-        ang_buff = 0.5
-        pos_buff = 5
-        print(radians(ang), target)
+        ang_buff = 15
+        pos_buff = 1
+        if x > pX:
+            target_ang = -90
+        if x < pX:
+            target_ang = 90
+        while not (x-pos_buff <= pX <= x+pos_buff):
+            #print(pX, x) 
+            pX = POSE['x'].item()
+
+            #print("Target angle is {}".format(target_ang))
+            while not(target_ang - ang_buff < ang < target_ang+ang_buff):
+                print(ang, target_ang-ang_buff, target_ang+ang_buff)
+                ang = POSE['heading']
+                controls['TurnLeft'] = self.speed
+
+            print("Facing target angle, move forwards")
+            controls['TurnLeft'] = 0
+            controls['MoveForward'] = self.speed
+        print("Reached correct X")
+
+        while not (y-pos_buff <= pY <= y+pos_buff):
+            pY = POSE['y'].item()
+            ang = POSE['heading']
+            target_ang = 0
+            while not(target_ang - ang_buff < ang < target_ang+ang_buff):
+                print("Turn to {}".format(target_ang))
+                ang = POSE['heading']
+                controls['TurnLeft'] = self.speed
+
+            controls['TurnLeft'] = 0
+
+            if y < pY:
+                controls['MoveForward'] = self.speed
+                controls['MoveBackward'] = 0
+                print("Need to move forwards")
+            elif y < pY:
+                print("Need to move backwards")
+                controls['MoveForward'] = 0
+                controls['MoveBackward'] = self.speed
+
+        # Reached correct position
+        # Reset Controls
+        for k in controls.keys():
+            controls[k] = 0 
+
+        """
+        turn and go
+
+        target_ang = atan2(y-pY, x-pX)
         while not(target - ang_buff < radians(ang) < target + ang_buff):
             ang = POSE['heading']
             controls['TurnLeft'] = 50
@@ -111,16 +158,15 @@ class Navigation_Thread(threading.Thread):
             pX = POSE['x']
             pY = POSE['y']
             controls['MoveForward'] = 50
-        
-        controls['MoveForward'] = 0
+        """ 
 
         with self.lock:
             print("Arrived at location {}".format((x,y)))
 
     def run(self):
+        time.sleep(3)
         print("going to origin")
-        while True: 
-            self.goto(0,0)
+        self.goto(0,2)
         
         
 """
@@ -130,7 +176,7 @@ Thread class for April Tag Localizing
 class Location_Thread(threading.Thread):
     def __init__(self, lock):
         threading.Thread.__init__(self)
-        self.cap = WebcamVideoStream(src=0).start()
+        self.cap = WebcamVideoStream(src=2).start()
         self.lock = lock
         self.loc = locator.Locator() 
         self.area_size = 600
@@ -159,6 +205,8 @@ class Location_Thread(threading.Thread):
             if ret:
                 h1 = (mul*pose[0] + self.area_size//2, mul*pose[2] + self.area_size//2)
                 h2 = (h1[0] - d*sin(radians(yaw)), h1[1] - d*cos(radians(yaw)))
+                h1 = tuple([int(x.item()) for x in h1])
+                h2 = tuple([int(x.item()) for x in h2])
                 self.area = cv2.circle(self.area, h1, 5, (0,0,255),2)
                 self.area = cv2.arrowedLine(self.area, h1, h2,
                         (0,255,0), 2)
