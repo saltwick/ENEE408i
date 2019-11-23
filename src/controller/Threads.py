@@ -81,9 +81,8 @@ class Arduino_Thread(threading.Thread):
                 break
             time.sleep(.2) 
 
-            if self.controls_have_changed(controls, prev_controls):
-                AController.send_message(self.encode(controls))
-                prev_controls = controls
+            #if self.controls_have_changed(controls, prev_controls):
+            AController.send_message(self.encode(controls))
 
 
 class Navigation_Thread(threading.Thread):

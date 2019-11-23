@@ -7,12 +7,16 @@ class ArduinoController():
         self.baud_rate = baud
         self.ser = None 
         self.lock = lock
-    
+        self.prevControls = []
     def start(self):
         self.ser = Serial(self.device, self.baud_rate)
         print("Arduino Controller started")        
 
     def send_message(self, msg):
-        self.ser.write(msg)
-        print(msg)
+        if msg != prevControls: 
+            self.ser.write(msg)
+            self.prevControls = msg.copy()
+            print("writing " + msg)
+        else:
+            print("not writing repeat " + msg)
         return
