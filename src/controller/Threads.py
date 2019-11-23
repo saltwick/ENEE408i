@@ -126,6 +126,7 @@ class Navigation_Thread(threading.Thread):
                 controls['TurnLeft'] = 0
                 time.sleep(1.5)
 
+            self.update_controls()
             print("Facing target angle, move forwards")
             controls['TurnLeft'] = 0
             controls['MoveForward'] = self.speed
@@ -145,7 +146,8 @@ class Navigation_Thread(threading.Thread):
                 controls['TurnLeft'] = 0
                 time.sleep(1.5)
 
-
+            
+            self.update_controls()
             controls['TurnLeft'] = 0
 
             if y < pY:
@@ -161,6 +163,8 @@ class Navigation_Thread(threading.Thread):
 
         # Reached correct position
         # Reset Controls
+
+        self.update_controls()
         for k in controls.keys():
             controls[k] = 0 
 
