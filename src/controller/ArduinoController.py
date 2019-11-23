@@ -19,5 +19,5 @@ class ArduinoController():
             print("writing " + ' '.join([str(x) for x in msg]))
 
         else:
-            print("not writing repeat " + msg)
+            print("not writing " + ' '.join([str(x) for x in msg]))
         return
