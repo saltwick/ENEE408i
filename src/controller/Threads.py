@@ -92,6 +92,11 @@ class Navigation_Thread(threading.Thread):
     def dist(self, x1, y1, x2, y2):
         return sqrt((x2-x1)**2 + (y2-y1)**2) 
 
+    def stop(self):
+        self.update_controls()
+        for k in controls.keys():
+            controls[k] = 0 
+
     def update_controls(self):
         prev_controls['MoveForward'] = controls['MoveForward']
         prev_controls['MoveBackward'] = controls['MoveBackward']
@@ -132,6 +137,8 @@ class Navigation_Thread(threading.Thread):
             controls['MoveForward'] = self.speed
         print("Reached correct X")
 
+        self.stop()
+
         while not (y-pos_buff <= pY <= y+pos_buff):
             self.update_controls()
             pY = POSE['y'].item()
@@ -163,10 +170,7 @@ class Navigation_Thread(threading.Thread):
 
         # Reached correct position
         # Reset Controls
-
-        self.update_controls()
-        for k in controls.keys():
-            controls[k] = 0 
+        self.stop()
 
         """
         turn and go
