@@ -14,7 +14,7 @@ import sys
 sys.path.append('..')
 from vision import Tracker
 from vision import locator
-from math import sin, cos, radians
+from math import sin, cos, radians, atan2, degrees
 #from flask_ask import Ask, statement, question
 
 # Intialize Connection to Arduino
@@ -46,6 +46,8 @@ POSE = {
     "y": np.array([100]),
     "heading": 0
 }
+
+camera_angle = 0
 """
 Thread class for Arduino Control
 """
@@ -55,7 +57,8 @@ class Arduino_Thread(threading.Thread):
     
     # Encode control dictionary to byte array
     def encode(self,controls):
-        vals = [controls['MoveForward'], controls['MoveBackward'], controls['SlowDown'], controls['TurnLeft'], controls['TurnRight'], controls['Missing']]
+        global camera_angle
+        vals = [controls['MoveForward'], controls['MoveBackward'], controls['SlowDown'], controls['TurnLeft'], controls['TurnRight'], camera_angle + 70]
         
         data = vals
         return data
@@ -90,7 +93,8 @@ class Navigation_Thread(threading.Thread):
         threading.Thread.__init__(self)
         self.lock = lock
         self.speed = 27
-   
+        self.camera_angle = 0
+
     def dist(self, x1, y1, x2, y2):
         return sqrt((x2-x1)**2 + (y2-y1)**2) 
 
@@ -124,7 +128,7 @@ class Navigation_Thread(threading.Thread):
         #print("Target angle is {}".format(target_ang))
         while not(target_ang - ang_buff < ang < target_ang+ang_buff):
         #    self.update_controls()
-            print(ang, target_ang-ang_buff, target_ang+ang_buff)
+            #print(ang, target_ang-ang_buff, target_ang+ang_buff)
             ang = POSE['heading']
             controls['TurnLeft'] = self.speed
             time.sleep(0.5)
@@ -233,19 +237,40 @@ class Location_Thread(threading.Thread):
         self.area = np.ones((600,600))*255
         self.area = cv2.line(self.area,(300,0), (300,600), (0,255,0), 1)
         self.area = cv2.line(self.area, (0, 300), (600,300), (0,255,0), 1)
+    
+    def set_camera_angle(self,wp):
+        global POSE
+        pose = [POSE['x'].item(), POSE['y'].item()]
+        ang = POSE['heading']
+        points = list(wp.values())
+        points = [x[0] for x in points]
+        points = [[x[0].item(),x[2].item()] for x in points]
+        points = sorted(points, key=lambda x: sum((np.array(x)-np.array(pose))**2))
 
+        for p in points:
+            cam_to_tag = degrees(atan2(p[0] - pose[0], p[1] - pose[1]))
+            t = cam_to_tag - ang
+            if -70 <= t <= 70:
+                return camera_angle
+
+        return 0
+
+
+        
     def run(self):
         global HALT
         global controls
         global POSE
-        c = 0
+        global camera_angle
         mul = 4
         d = 30
         while True:
-            c += 1
             frame = self.cap.read()
-            ret, pose, yaw = self.loc.locate(frame, c)
+            wp = self.loc.get_worldPoints()
+            camera_angle = self.set_camera_angle(wp) 
+            ret, pose, yaw = self.loc.locate(frame, 10)
             if ret:
+                yaw = yaw - camera_angle
                 h1 = (mul*pose[0] + self.area_size//2, mul*pose[2] + self.area_size//2)
                 h2 = (h1[0] - d*sin(radians(yaw)), h1[1] - d*cos(radians(yaw)))
                 h1 = tuple([int(x.item()) for x in h1])

@@ -19,7 +19,7 @@ navigate.start()
 #vision.start()
 local.start()
 f.setDaemon(True)
-f.start()
+#f.start()
 # Join threads
 arduino.join()
 navigate.join()
