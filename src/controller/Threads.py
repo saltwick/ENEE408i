@@ -87,7 +87,7 @@ class Navigation_Thread(threading.Thread):
     def __init__(self, lock):
         threading.Thread.__init__(self)
         self.lock = lock
-        self.speed = 20
+        self.speed = 25
    
     def dist(self, x1, y1, x2, y2):
         return sqrt((x2-x1)**2 + (y2-y1)**2) 
@@ -116,54 +116,60 @@ class Navigation_Thread(threading.Thread):
             target_ang = -90
         if x < pX:
             target_ang = 90
+
+        #print("Target angle is {}".format(target_ang))
+        while not(target_ang - ang_buff < ang < target_ang+ang_buff):
+            self.update_controls()
+            print(ang, target_ang-ang_buff, target_ang+ang_buff)
+            ang = POSE['heading']
+            controls['TurnLeft'] = self.speed
+            time.sleep(0.5)
+            controls['TurnLeft'] = 0
+            time.sleep(1.5)
+
+        with lock:
+            print("Facing target angle, move forwards")
+        self.stop()
+        time.sleep(1)
+
         while not (x-pos_buff <= pX <= x+pos_buff):
             self.update_controls()
             #print(pX, x) 
             pX = POSE['x'].item()
-
-            #print("Target angle is {}".format(target_ang))
-            while not(target_ang - ang_buff < ang < target_ang+ang_buff):
-                self.update_controls()
-                print(ang, target_ang-ang_buff, target_ang+ang_buff)
-                ang = POSE['heading']
-                controls['TurnLeft'] = self.speed
-                time.sleep(0.5)
-                controls['TurnLeft'] = 0
-                time.sleep(1.5)
-
-            self.update_controls()
-            print("Facing target angle, move forwards")
-            controls['TurnLeft'] = 0
             controls['MoveForward'] = self.speed
-        print("Reached correct X")
+
+        with lock:
+            print("Reached correct X")
 
         self.stop()
+        time.sleep(1)
+
+        ang = POSE['heading']
+        target_ang = 0
+        while not(target_ang - ang_buff < ang < target_ang+ang_buff):
+            self.update_controls()
+            print("Turn to {}".format(target_ang))
+            ang = POSE['heading']
+            controls['TurnLeft'] = self.speed
+            time.sleep(0.5)
+            controls['TurnLeft'] = 0
+            time.sleep(1.5)
+
+        with lock:
+            print("Facing angle 0")
+        self.stop()
+        time.sleep(1)
 
         while not (y-pos_buff <= pY <= y+pos_buff):
             self.update_controls()
             pY = POSE['y'].item()
-            ang = POSE['heading']
-            target_ang = 0
-            while not(target_ang - ang_buff < ang < target_ang+ang_buff):
-                self.update_controls()
-                print("Turn to {}".format(target_ang))
-                ang = POSE['heading']
-                controls['TurnLeft'] = self.speed
-                time.sleep(0.5)
-                controls['TurnLeft'] = 0
-                time.sleep(1.5)
 
-            
             self.update_controls()
-            controls['TurnLeft'] = 0
-
             if y < pY:
-                self.update_controls()
                 controls['MoveForward'] = self.speed
                 controls['MoveBackward'] = 0
                 print("Need to move forwards")
             elif y < pY:
-                self.update_controls()
                 print("Need to move backwards")
                 controls['MoveForward'] = 0
                 controls['MoveBackward'] = self.speed

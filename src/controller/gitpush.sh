@@ -6,6 +6,6 @@ read cmesg
 
 git add .
 
-git commit $cmesg
+git commit -m $cmesg
 
 git push
