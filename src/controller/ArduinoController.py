@@ -13,7 +13,7 @@ class ArduinoController():
         print("Arduino Controller started")        
 
     def send_message(self, msg):
-        if msg != prevControls: 
+        if msg != self.prevControls: 
             self.ser.write(msg)
             self.prevControls = msg.copy()
             print("writing " + msg)
