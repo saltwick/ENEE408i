@@ -83,8 +83,7 @@ class Arduino_Thread(threading.Thread):
 
             if self.controls_have_changed(controls, prev_controls):
                 AController.send_message(self.encode(controls))
-
-            prev_controls = controls
+                prev_controls = controls
 
 
 class Navigation_Thread(threading.Thread):
@@ -97,7 +96,7 @@ class Navigation_Thread(threading.Thread):
         return sqrt((x2-x1)**2 + (y2-y1)**2) 
 
     def stop(self):
-        self.update_controls()
+        #self.update_controls()
         for k in controls.keys():
             controls[k] = 0 
 
