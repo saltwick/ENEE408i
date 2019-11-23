@@ -87,7 +87,7 @@ class Navigation_Thread(threading.Thread):
     def __init__(self, lock):
         threading.Thread.__init__(self)
         self.lock = lock
-        self.speed = 10
+        self.speed = 30
    
     def dist(self, x1, y1, x2, y2):
         return sqrt((x2-x1)**2 + (y2-y1)**2) 
@@ -113,6 +113,9 @@ class Navigation_Thread(threading.Thread):
                 print(ang, target_ang-ang_buff, target_ang+ang_buff)
                 ang = POSE['heading']
                 controls['TurnLeft'] = self.speed
+                time.sleep(0.5)
+                controls['TurnLeft'] = 0
+                time.sleep(0.5)
 
             print("Facing target angle, move forwards")
             controls['TurnLeft'] = 0
@@ -166,7 +169,7 @@ class Navigation_Thread(threading.Thread):
     def run(self):
         time.sleep(3)
         print("going to origin")
-        self.goto(0,2)
+        self.goto(0,4)
         
         
 """
@@ -176,7 +179,7 @@ Thread class for April Tag Localizing
 class Location_Thread(threading.Thread):
     def __init__(self, lock):
         threading.Thread.__init__(self)
-        self.cap = WebcamVideoStream(src=2).start()
+        self.cap = WebcamVideoStream(src=0).start()
         self.lock = lock
         self.loc = locator.Locator() 
         self.area_size = 600
