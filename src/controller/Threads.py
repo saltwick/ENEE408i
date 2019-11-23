@@ -87,7 +87,7 @@ class Navigation_Thread(threading.Thread):
     def __init__(self, lock):
         threading.Thread.__init__(self)
         self.lock = lock
-        self.speed = 25
+        self.speed = 23
    
     def dist(self, x1, y1, x2, y2):
         return sqrt((x2-x1)**2 + (y2-y1)**2) 
@@ -98,6 +98,8 @@ class Navigation_Thread(threading.Thread):
             controls[k] = 0 
 
     def update_controls(self):
+        global controls
+        global prev_controls
         prev_controls['MoveForward'] = controls['MoveForward']
         prev_controls['MoveBackward'] = controls['MoveBackward']
         prev_controls['Missing'] = controls['Missing']
@@ -124,10 +126,11 @@ class Navigation_Thread(threading.Thread):
             ang = POSE['heading']
             controls['TurnLeft'] = self.speed
             time.sleep(0.5)
+            self.update_controls()
             controls['TurnLeft'] = 0
             time.sleep(1.5)
 
-        with lock:
+        with self.lock:
             print("Facing target angle, move forwards")
         self.stop()
         time.sleep(1)
@@ -138,7 +141,7 @@ class Navigation_Thread(threading.Thread):
             pX = POSE['x'].item()
             controls['MoveForward'] = self.speed
 
-        with lock:
+        with self.lock:
             print("Reached correct X")
 
         self.stop()
@@ -155,7 +158,7 @@ class Navigation_Thread(threading.Thread):
             controls['TurnLeft'] = 0
             time.sleep(1.5)
 
-        with lock:
+        with self.lock:
             print("Facing angle 0")
         self.stop()
         time.sleep(1)
