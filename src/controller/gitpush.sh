@@ -1,11 +1,9 @@
 #!/bin/bash
 
-echo Enter Commit Message:
-
-read cmesg
+read -r -p "Enter Commit Message: " cmesg
 
 git add .
 
-git commit -m $cmesg
+git commit -m "$cmesg"
 
 git push
