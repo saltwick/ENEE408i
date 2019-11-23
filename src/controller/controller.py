@@ -11,15 +11,15 @@ arduino = Arduino_Thread()
 local = Location_Thread(lock)
 navigate = Navigation_Thread(lock)
 
-#f = Flask_Thread(app)
+f = Flask_Thread(app)
 
 # Start Threads
 arduino.start()
 navigate.start()
 #vision.start()
 local.start()
-#f.setDaemon(True)
-#f.start()
+f.setDaemon(True)
+f.start()
 # Join threads
 arduino.join()
 navigate.join()

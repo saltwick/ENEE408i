@@ -412,6 +412,7 @@ class Counter_Thread(threading.Thread):
 Thread class for Flask Server
 """
 class Flask_Thread(threading.Thread):
+    
 
     def home(self):
         return 'hi'
@@ -428,7 +429,8 @@ class Flask_Thread(threading.Thread):
     def run(self):
         self.app.run(debug=False, host='0.0.0.0')   
         # START FLASK SERVER HERE
-"""
+
+    """
     @ask.launch
     def launched():
         return question("Yo. I'm Big Al. If you need some kneecaps broken, I'm your man").reprompt(
