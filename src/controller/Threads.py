@@ -65,6 +65,8 @@ class Arduino_Thread(threading.Thread):
             if controls[k] !=  prev_controls[k]:
                 return True
         return False
+
+
     def run(self):
         global HALT
         global count
@@ -81,6 +83,8 @@ class Arduino_Thread(threading.Thread):
 
             if self.controls_have_changed(controls, prev_controls):
                 AController.send_message(self.encode(controls))
+
+            prev_controls = controls
 
 
 class Navigation_Thread(threading.Thread):
@@ -121,12 +125,12 @@ class Navigation_Thread(threading.Thread):
 
         #print("Target angle is {}".format(target_ang))
         while not(target_ang - ang_buff < ang < target_ang+ang_buff):
-            self.update_controls()
+        #    self.update_controls()
             print(ang, target_ang-ang_buff, target_ang+ang_buff)
             ang = POSE['heading']
             controls['TurnLeft'] = self.speed
             time.sleep(0.5)
-            self.update_controls()
+        #    self.update_controls()
             controls['TurnLeft'] = 0
             time.sleep(1.5)
 
@@ -136,7 +140,7 @@ class Navigation_Thread(threading.Thread):
         time.sleep(1)
 
         while not (x-pos_buff <= pX <= x+pos_buff):
-            self.update_controls()
+        #    self.update_controls()
             with self.lock:
                 print(pX, x) 
 
@@ -153,7 +157,7 @@ class Navigation_Thread(threading.Thread):
         ang = POSE['heading']
         target_ang = 0
         while not(target_ang - ang_buff < ang < target_ang+ang_buff):
-            self.update_controls()
+        #    self.update_controls()
             print("Turn to {}".format(target_ang))
             ang = POSE['heading']
             controls['TurnLeft'] = self.speed
@@ -167,10 +171,10 @@ class Navigation_Thread(threading.Thread):
         time.sleep(1)
 
         while not (y-pos_buff <= pY <= y+pos_buff):
-            self.update_controls()
+        #    self.update_controls()
             pY = POSE['y'].item()
 
-            self.update_controls()
+        #    self.update_controls()
             if y < pY:
                 controls['MoveForward'] = self.speed
                 controls['MoveBackward'] = 0
