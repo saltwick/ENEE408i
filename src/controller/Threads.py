@@ -87,7 +87,7 @@ class Navigation_Thread(threading.Thread):
     def __init__(self, lock):
         threading.Thread.__init__(self)
         self.lock = lock
-        self.speed = 15
+        self.speed = 20
    
     def dist(self, x1, y1, x2, y2):
         return sqrt((x2-x1)**2 + (y2-y1)**2) 
