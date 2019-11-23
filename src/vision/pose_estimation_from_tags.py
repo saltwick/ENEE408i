@@ -38,7 +38,7 @@ for k,v in data.items():
     world_points[int(k)] = np.array(v, dtype=np.float32).reshape((4,3,1))
 
 # Video Loop
-cap = WebcamVideoStream(src=2).start()
+cap = WebcamVideoStream(src=0).start()
 area = np.ones((600,600))*255
 
 area = cv2.line(area,(300,0), (300,600), (0,255,0), 1)
@@ -67,7 +67,6 @@ while True:
         # Use rotation matrix to get pose = -R * t (matrix mul w/ @)
         R = rot_mat.transpose()
         pose = -R @ t
-
         # Display yaw/pitch/roll and pose
     #    print("Tag: {}".format(tag_id))
         poses.append(pose)
@@ -80,9 +79,8 @@ while True:
         avg_pose = sum(poses) / len(poses)
         for i,c in enumerate(avg_pose):
             avg_pose[i] = list(map(lambda x: x*4, c))
-
+        print("Pose: ", avg_pose)
         area2 = cv2.circle(area2, (avg_pose[0]+300, avg_pose[2]+300), 5, (0,0,255),2)
-#        print("Pose: ", avg_pose)
 
     if len(yaws) > 0:
         avg_yaw = sum(yaws) / len(yaws)

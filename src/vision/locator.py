@@ -33,7 +33,7 @@ class Locator:
     def __init__(self):
         # Initialize apriltag detector
         self.det = apriltag.Detector()
-
+        self.c = 0
         # Load camera data
         with open('cameraParams.json', 'r') as f:
             data = json.load(f)
@@ -55,6 +55,8 @@ class Locator:
         self.yaw_buff = []
         self.ret = True
 
+    def get_worldPoints(self):
+        return self.world_points
 
     """
         Helper Function for converting rotation matrix R to yaw/pitch/roll
@@ -76,9 +78,9 @@ class Locator:
         return max_weight/dist
         
 
-    def locate(self, frame, c):
-        buff = 10
-        if c != 0 and c % buff == 0: 
+    def locate(self, frame, buff):
+        if self.c != 0 and self.c % buff == 0: 
+            self.c = 0
             if self.pose_buff and self.yaw_buff:
                 p = np.median(self.pose_buff, axis=0)
                 y = np.median(self.yaw_buff)
@@ -145,6 +147,8 @@ class Locator:
                 self.pose_buff.pop(0)
             if len(self.yaw_buff) > buff:
                 self.yaw_buff.pop(0)
+
+            self.c += 1
             return self.last
 
         
