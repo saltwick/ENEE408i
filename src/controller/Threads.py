@@ -144,7 +144,6 @@ class Navigation_Thread(threading.Thread):
 
             pX = POSE['x'].item()
             controls['MoveForward'] = self.speed
-            time.sleep(2)
 
         with self.lock:
             print("Reached correct X")
