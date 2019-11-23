@@ -16,7 +16,9 @@ class ArduinoController():
         if msg != self.prevControls: 
             self.ser.write(msg)
             self.prevControls = msg.copy()
-            print("writing " + msg)
+            with self.lock:
+                print("writing " + ' '.join([str(x) for x in msg])
         else:
-            print("not writing repeat " + msg)
+            with self.lock:
+                print("not writing repeat " + msg)
         return
