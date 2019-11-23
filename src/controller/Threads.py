@@ -92,6 +92,13 @@ class Navigation_Thread(threading.Thread):
     def dist(self, x1, y1, x2, y2):
         return sqrt((x2-x1)**2 + (y2-y1)**2) 
 
+    def update_controls(self):
+        prev_controls['MoveForward'] = controls['MoveForward']
+        prev_controls['MoveBackward'] = controls['MoveBackward']
+        prev_controls['Missing'] = controls['Missing']
+        prev_controls['TurnLeft'] = controls['TurnLeft']
+        prev_controls['TurnRight'] = controls['TurnRight']
+
     def goto(self, x,y):
         global POSE
         global controls
@@ -105,17 +112,19 @@ class Navigation_Thread(threading.Thread):
         if x < pX:
             target_ang = 90
         while not (x-pos_buff <= pX <= x+pos_buff):
+            self.update_controls()
             #print(pX, x) 
             pX = POSE['x'].item()
 
             #print("Target angle is {}".format(target_ang))
             while not(target_ang - ang_buff < ang < target_ang+ang_buff):
+                self.update_controls()
                 print(ang, target_ang-ang_buff, target_ang+ang_buff)
                 ang = POSE['heading']
                 controls['TurnLeft'] = self.speed
                 time.sleep(0.5)
                 controls['TurnLeft'] = 0
-                time.sleep(0.5)
+                time.sleep(1.5)
 
             print("Facing target angle, move forwards")
             controls['TurnLeft'] = 0
@@ -123,21 +132,29 @@ class Navigation_Thread(threading.Thread):
         print("Reached correct X")
 
         while not (y-pos_buff <= pY <= y+pos_buff):
+            self.update_controls()
             pY = POSE['y'].item()
             ang = POSE['heading']
             target_ang = 0
             while not(target_ang - ang_buff < ang < target_ang+ang_buff):
+                self.update_controls()
                 print("Turn to {}".format(target_ang))
                 ang = POSE['heading']
                 controls['TurnLeft'] = self.speed
+                time.sleep(0.5)
+                controls['TurnLeft'] = 0
+                time.sleep(1.5)
+
 
             controls['TurnLeft'] = 0
 
             if y < pY:
+                self.update_controls()
                 controls['MoveForward'] = self.speed
                 controls['MoveBackward'] = 0
                 print("Need to move forwards")
             elif y < pY:
+                self.update_controls()
                 print("Need to move backwards")
                 controls['MoveForward'] = 0
                 controls['MoveBackward'] = self.speed
