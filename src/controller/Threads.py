@@ -226,18 +226,47 @@ class Location_Thread(threading.Thread):
         self.cap = WebcamVideoStream(src=0).start()
         self.lock = lock
         self.loc = locator.Locator() 
-        self.area_size = 600
+        self.area_size = 160
+        self.load_area()
+
+    def create_area(self):
+        hall_width = 30
         self.area = np.ones((self.area_size,self.area_size))*255
+        # axis
         self.area = cv2.line(self.area,(self.area_size//2,0),
                 (self.area_size//2,self.area_size), (0,255,0), 1)
         self.area = cv2.line(self.area, (0, self.area_size//2),
                 (self.area_size,self.area_size//2), (0,255,0), 1)
+        # Opposite hallway
+        self.area = cv2.line(self.area, (0, self.area_size//2-hall_width), (self.area_size, self.area_size//2 - hall_width), (0,255,0), 2)
+        # left wall
+        self.area = cv2.line(self.area, (17, self.area_size), (17, self.area_size//2), (0,255,0), 2)
+        # left hallway near wall
+        self.area = cv2.line(self.area, (17, self.area_size//2), (0, self.area_size//2), (0,255,0), 2)
+        # right wall
+        self.area = cv2.line(self.area, (self.area_size-7, self.area_size), (self.area_size-7, self.area_size//2), (0,255,0), 2)
+        # right hallway near wall
+        self.area = cv2.line(self.area, (self.area_size-7, self.area_size//2), (self.area_size, self.area_size//2), (0,255,0), 2)
+        # left side of door
+        self.area = cv2.line(self.area, (self.area_size//2 - 63, self.area_size//2 + 10), (self.area_size//2-63 + 3, self.area_size//2 + 10), (0,255,0), 2)
+        # right side of door
+        self.area = cv2.line(self.area, (self.area_size//2-45, self.area_size//2 + 10), (self.area_size//2-45-3, self.area_size//2 + 10), (0,255,0), 2)
+        # inner right wall
+        self.area = cv2.line(self.area, (self.area_size//2+55, self.area_size//2+10), (self.area_size//2 + 55, self.area_size//2), (0,255,0), 2)
+        self.area = cv2.line(self.area, (self.area_size//2+55, self.area_size//2+10), (self.area_size//2 + 73, self.area_size//2+10), (0,255,0), 2)
+        # inner left wall
+        self.area = cv2.line(self.area, (self.area_size//2 - 45, self.area_size//2 + 10), (self.area_size//2-45, self.area_size//2), (0,255,0), 2)
+        # front wall
+        self.area = cv2.line(self.area, (self.area_size//2 - 45, self.area_size//2), (self.area_size//2 + 55, self.area_size//2), (0,255,0), 2)
+
+
+    def load_area(self):
+        self.area = cv2.imread('map-scaled.png')
+        self.clean_area = self.area.copy()
 
     def clear_area(self):
-        self.area = np.ones((600,600))*255
-        self.area = cv2.line(self.area,(300,0), (300,600), (0,255,0), 1)
-        self.area = cv2.line(self.area, (0, 300), (600,300), (0,255,0), 1)
-    
+        self.area = self.clean_area
+
     def set_camera_angle(self,wp):
         global POSE
         pose = [POSE['x'].item(), POSE['y'].item()]
@@ -246,7 +275,7 @@ class Location_Thread(threading.Thread):
         points = [x[0] for x in points]
         points = [[x[0].item(),x[2].item()] for x in points]
         points = sorted(points, key=lambda x: sum((np.array(x)-np.array(pose))**2))
-        print(ang)
+       # print(ang)
         for p in points:
             dx = p[0] - pose[0]
             dy = p[1] - pose[1]
@@ -258,7 +287,7 @@ class Location_Thread(threading.Thread):
             t = head - cam_to_tag
 
             if -70 <= t <= 70:
-                print("{} is the closest point in view of the camera".format(p))
+       #         print("{} is the closest point in view of the camera".format(p))
 #                print("dx: {} dy: {} cam_to_tag: {} heading: {} t: {}".format(dx,
             #        dy, cam_to_tag, ang, t))
                 return camera_angle
@@ -281,11 +310,11 @@ class Location_Thread(threading.Thread):
             ret, pose, yaw = self.loc.locate(frame, 10)
             if ret:
                 yaw = yaw - camera_angle
-                h1 = (mul*pose[0] + self.area_size//2, mul*pose[2] + self.area_size//2)
+                h1 = (mul*pose[0] + mul*self.area_size//2, mul*pose[2] + mul*self.area_size//2)
                 h2 = (h1[0] - d*sin(radians(yaw)), h1[1] - d*cos(radians(yaw)))
                 h1 = tuple([int(x.item()) for x in h1])
                 h2 = tuple([int(x.item()) for x in h2])
-                self.area = cv2.circle(self.area, h1, 5, (0,0,255),2)
+                self.area = cv2.circle(self.area, h1, 5, (255,0,0),2)
                 self.area = cv2.arrowedLine(self.area, h1, h2,
                         (0,255,0), 2)
                 POSE['x'] = pose[0]
@@ -298,8 +327,8 @@ class Location_Thread(threading.Thread):
 
             # Display map
             cv2.imshow('map', self.area)
-            
-            self.clear_area()
+           
+            self.load_area()
             # Q to quit
             if cv2.waitKey(1) & 0xFF == ord('q') or HALT:
                 break

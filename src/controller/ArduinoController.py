@@ -9,10 +9,18 @@ class ArduinoController():
         self.lock = lock
         self.prevControls = []
     def start(self):
-        self.ser = Serial(self.device, self.baud_rate)
+        try:
+            self.ser = Serial(self.device, self.baud_rate)
+        except:
+            print('No device found')
+            self.ser = None
         print("Arduino Controller started")        
 
     def send_message(self, msg):
+        if not self.ser:
+            print('No device - cannot send message')
+            return
+
         if msg != self.prevControls: 
             self.ser.write(msg)
             self.prevControls = msg.copy()

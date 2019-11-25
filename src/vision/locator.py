@@ -70,7 +70,8 @@ class Locator:
         proj = camera_matrix.dot(np.hstack((R, t)))
         rot = cv2.decomposeProjectionMatrix(proj)
         rot = rot[-1]
-        return rot[1], rot[2], rot[0]
+        print(rot, end ='-------------------------------\n')
+        return rot[1], rot[0], rot[2]
     
     def calc_weight(self, p1, p2):
         max_weight = 150
@@ -100,6 +101,9 @@ class Locator:
             for r in res:
                 corners = r.corners
                 tag_id = r.tag_id
+                if tag_id not in self.world_points.keys():
+                    return self.last
+
                 corners = np.array(corners, dtype=np.float32).reshape((4,2,1))
                 # Draw circles on tags
                 for c in corners:
@@ -119,7 +123,7 @@ class Locator:
                 # Display yaw/pitch/roll and pose
             #    print("Tag: {}".format(tag_id))
                 poses.append((pose, weight))
-                yaw, pitch, roll = self.get_orientation(self.cameraMatrix, R, t)
+                yaw, pitch, roll = self.get_orientation(self.cameraMatrix, rot_mat, t)
                 yaws.append((yaw, weight))
         #        print("Yaw: {} \n Pitch: {} \n Roll: {}".format(yaw,pitch,roll))
              
@@ -147,6 +151,7 @@ class Locator:
                 self.pose_buff.pop(0)
             if len(self.yaw_buff) > buff:
                 self.yaw_buff.pop(0)
+
 
             self.c += 1
             return self.last
