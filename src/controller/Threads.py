@@ -246,11 +246,21 @@ class Location_Thread(threading.Thread):
         points = [x[0] for x in points]
         points = [[x[0].item(),x[2].item()] for x in points]
         points = sorted(points, key=lambda x: sum((np.array(x)-np.array(pose))**2))
-
+        print(ang)
         for p in points:
-            cam_to_tag = degrees(atan2(p[0] - pose[0], p[1] - pose[1]))
-            t = cam_to_tag - ang
+            dx = p[0] - pose[0]
+            dy = p[1] - pose[1]
+            cam_to_tag = degrees(atan2(dx,dy ))
+            if cam_to_tag < 0:
+                cam_to_tag += 360
+            
+            head = ang + 180
+            t = head - cam_to_tag
+
             if -70 <= t <= 70:
+                print("{} is the closest point in view of the camera".format(p))
+#                print("dx: {} dy: {} cam_to_tag: {} heading: {} t: {}".format(dx,
+            #        dy, cam_to_tag, ang, t))
                 return camera_angle
 
         return 0
