@@ -18,5 +18,5 @@ class ClientThread():
 
 
 
-c = ClientThread("Sam", True)
+c = ClientThread("Sam2", True)
 c.run()
