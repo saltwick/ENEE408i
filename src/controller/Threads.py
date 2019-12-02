@@ -121,7 +121,7 @@ class Navigation_Thread(threading.Thread):
         ang_buff = 15
         pos_buff = 1
         if x > pX:
-            target_ang = -90
+            target_ang = 270
         if x < pX:
             target_ang = 90
 
@@ -307,9 +307,11 @@ class Location_Thread(threading.Thread):
             frame = self.cap.read()
             wp = self.loc.get_worldPoints()
             camera_angle = self.set_camera_angle(wp) 
-            ret, pose, yaw = self.loc.locate(frame, 10)
+            ret, pose, yaw, heading = self.loc.locate(frame, 10)
+            #print(heading)
             if ret:
-                yaw = yaw - camera_angle
+               # print(degrees(yaw))
+                #yaw = yaw - camera_angle
                 h1 = (mul*pose[0] + mul*self.area_size//2, mul*pose[2] + mul*self.area_size//2)
                 h2 = (h1[0] - d*sin(radians(yaw)), h1[1] - d*cos(radians(yaw)))
                 h1 = tuple([int(x.item()) for x in h1])
