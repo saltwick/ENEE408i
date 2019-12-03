@@ -14,8 +14,11 @@ extern "C" {
 #define INB_PIN_RIGHT 5
 #define EN_PIN_RIGHT 6
 
-#define MOTOR_UPPER_LIMIT 60
-#define MOTOR_LOWER_LIMIT 35
+#define MOTOR_UPPER_LIMIT_STRAIGHT 60
+#define MOTOR_LOWER_LIMIT_STRAIGHT 20
+
+#define MOTOR_UPPER_LIMIT_TURNING 35
+#define MOTOR_LOWER_LIMIT_TURNING 27
 
 #define R_L_RATIO 1.07
 
@@ -23,6 +26,7 @@ extern "C" {
 #define STRAIGHT 1
 #define COUNTER_CLOCKWISE 2
 #define CLOCKWISE 3
+#define BACKWARD 4
 
 typedef struct {
     int pwm_pin;
@@ -42,14 +46,22 @@ typedef struct {
 
 void initMotors(Motors* motors);
 
-void rotateClockwise(Motors* motors, float rate);
+void rotateClockwise(Motors* motors, int rate);
 
-void rotateCounterClockwise(Motors* motors, float rate);
+void rotateCounterClockwise(Motors* motors, int rate);
 
-void go_straight(Motors* motors, float rate);
+void go_straight(Motors* motors, int rate);
+
+void go_back(Motors* motors, int rate);
+
 
 void stopMotor(Motor* motor);
 
+int threshold_Straight(int num);
+
+int threshold_Turning(int num);
+
+void stop(Motors* motors);
 
 #ifdef __cplusplus
 } //  close of extern "C"
