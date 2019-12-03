@@ -10,6 +10,8 @@
 #include <LiquidCrystal_I2C.h>
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 #endif
+#include "Servo.h"
+
 
 // When uploading ensure that if using the Arduino IDE, that motor.c, motor.h, ultr   asound.c and ultrasound.h are added with
 // Sketch>Add File... to have it all linked correctly
@@ -19,13 +21,16 @@ UltrasoundFourPin leftAngleU, rightAngleU;
 
 Ultrasounds ultrasounds;
 ////
+Servo myservo;
 Motor leftM;
 Motor rightM;
 Motors motors;
 int currSpeed;
 int priorPerson;
+int servoPos = 90;
 
 void setup() {
+  myservo.attach(13);
 #if DEBUG
   lcd.begin();
   lcd.backlight();
@@ -66,6 +71,7 @@ void setup() {
 }
 
 void loop() {
+  myservo.write(servoPos);
   byte commands[6];
   if (Serial.available() >= 6) {
     Serial.print("TEST");
@@ -75,56 +81,69 @@ void loop() {
     }
     lcd.clear();
     // Process Commands
+    int sum = 0;
     for (int cmd = 0; cmd < 6; cmd += 1) {
       uint16_t value = commands[cmd];
+      if (value == 0 && cmd != 5) {
+        sum += 1;
+      }
       if (cmd == 0) {
         // Forward
-        #if DEBUG
+#if DEBUG
         lcd.setCursor(0, 0);
         lcd.print("forward: ");
         lcd.print(value);
-        #endif
-        go_straight(&motors, 0);
+#endif
         if (value > 0) {
-          go_straight(&motors, .60);
+          go_straight(&motors, value);
         }
       } else if (cmd == 1) {
-        // SpeedUp
+        // moveBackwards
+        if (value > 0) {
+          go_back(&motors, value);
+        }
       } else if (cmd == 2) {
         // SpeedDown
       } else if (cmd == 3) {
         // Left
-        #if DEBUG
+#if DEBUG
         lcd.setCursor(0, 1);
         lcd.print("left: ");
         lcd.print(value);
-        #endif
+#endif
         if (value > 0 && motors.turning_status != COUNTER_CLOCKWISE) {
-          rotateCounterClockwise(&motors, value / 255.0);
+          rotateCounterClockwise(&motors, value);
         }
       } else if (cmd == 4) {
         // Right
-        #if DEBUG
+#if DEBUG
         lcd.setCursor(0, 2);
         lcd.print("right: ");
         lcd.print(value);
-        #endif
+#endif
         if (value > 0 && motors.turning_status != CLOCKWISE) {
-          rotateClockwise(&motors, value / 255.0);
+          rotateClockwise(&motors, value);
         }
-      } else if (cmd == 5 and value != 0) {
-        // Missing Person
-        if (motors.turning_status != COUNTER_CLOCKWISE && motors.turning_status != CLOCKWISE) {
-          rotateCounterClockwise(&motors, (MOTOR_UPPER_LIMIT + MOTOR_LOWER_LIMIT) / 2);
+      } else if (cmd == 5) {
+        
+          int a = map(value, 0, 140, 0, 180);
+          if (a > servoPos) {
+            for (int i = servoPos; i <= a; i += 1) {
+              myservo.write(i);
+              delay(25);
+            }
+          } else if (a < servoPos) {
+            for (int i = servoPos; i >= a; i -= 1) {
+              myservo.write(i);
+              delay(25);
+          }
         }
       }
     }
+    if (sum == 5) {
+      stop(&motors);
+    }
   }
-  else {
-  }
-
-
-
 }
 
 void obstacleAvoidance() {

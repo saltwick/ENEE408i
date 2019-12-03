@@ -7,7 +7,7 @@ extern "C" {
 #endif
 #define LEFT_PING 2
 #define MIDDLE_PING 8
-#define RIGHT_PING 13
+#define RIGHT_PING 13 //unplugged
 #define LEFT_ANGLE_TRIG A1
 #define LEFT_ANGLE_ECHO A0
 #define RIGHT_ANGLE_TRIG A3 
