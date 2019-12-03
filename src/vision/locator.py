@@ -3,9 +3,10 @@ import cv2
 import json
 import apriltag
 from imutils.video import WebcamVideoStream
-from math import atan2, asin, sin, cos,radians, sqrt
+from math import atan2, asin, sin, cos,radians, sqrt, degrees
+import math
 from scipy.signal import medfilt2d
-
+import time
 class MedianBuffer:
 
     def __init__(self, n):
@@ -50,10 +51,11 @@ class Locator:
             self.world_points[int(k)] = np.array(v, dtype=np.float32).reshape((4,3,1))
 
         self.pose_buffer = MedianBuffer(10)
-        self.last = (False, None, None)
+        self.last = (False, None, None, None)
         self.pose_buff = []
         self.yaw_buff = []
         self.ret = True
+        self.heading = np.array([0,1,0])
 
     def get_worldPoints(self):
         return self.world_points
@@ -65,13 +67,54 @@ class Locator:
         """
         roll = atan2(-R[2][1], R[2][2])
         pitch = asin(R[2][0])
-        yaw = atan2(-R[1][0], R[0][0])
         """
+        #yaw = atan2(-R[1][0], R[0][0])
         proj = camera_matrix.dot(np.hstack((R, t)))
         rot = cv2.decomposeProjectionMatrix(proj)
         rot = rot[-1]
-        print(rot, end ='-------------------------------\n')
-        return rot[1], rot[0], rot[2]
+        #print(rot, end ='-------------------------------\n')
+        """
+        if yaw < 0:
+            yaw += math.pi
+
+        return yaw
+        """
+        yaw = rot[1]
+
+        """
+        sy = math.sqrt(R[0][0] * R[0][0] + R[1][0]* R[1][0])
+        singular = sy < 1e-6
+
+        y = math.atan2(-R[2][0], math.sqrt((R[2][1])**2 + (R[2][2])**2))
+        yaw = degrees(y)
+
+        if (-R[2][0] < 0 and math.sqrt((R[2][1])**2 + (R[2][2])**2) < 0):
+            yaw += 90
+        elif (-R[2][0] > 0 and math.sqrt((R[2][1])**2 + (R[2][2])**2) < 0):
+            yaw -=90
+
+        print(yaw, -R[2][0], math.sqrt((R[2][1])**2 + (R[2][2])**2))
+        """
+        #yaw = degrees(y)
+        #print(yaw, -R[2][0], sy)
+
+        """
+        normal = np.array([0,0,1])
+        heading = R @ normal
+        heading_normed = heading / np.linalg.norm(heading)
+        angle = np.dot(normal, heading_normed)
+        axis = np.cross(normal, heading_normed)
+        
+        x = axis[0]
+        y = axis[1]
+        z = axis[2]
+
+        yaw = math.asin(axis[0] * axis[1] * (1 - math.cos(angle)) + axis[2] * math.sin(angle))
+        heading = atan2(y * sin(angle)- x * z * (1 - cos(angle)) , 1 - (y**2 + z**2 ) * (1 - cos(angle)))
+        bank = atan2(x * sin(angle)-y * z * (1 - cos(angle)) , 1 - (x**2 + z**2) * (1 - cos(angle)))
+        print(degrees(heading), degrees(yaw), degrees(bank))
+        """
+        return yaw
     
     def calc_weight(self, p1, p2):
         max_weight = 150
@@ -85,8 +128,8 @@ class Locator:
             if self.pose_buff and self.yaw_buff:
                 p = np.median(self.pose_buff, axis=0)
                 y = np.median(self.yaw_buff)
-                self.last = (self.ret, p, y)
-                return self.ret, p, y
+                self.last = (self.ret, p, y, self.heading)
+                return self.ret, p, y, self.heading
             else:
                 return self.last
         else:
@@ -117,13 +160,13 @@ class Locator:
                 # Use rotation matrix to get pose = -R * t (matrix mul w/ @)
                 R = rot_mat.transpose()
                 pose = -R @ t
-                
+                self.heading = -R @ self.heading
                 weight = self.calc_weight(pose, self.world_points[tag_id][0])
 
                 # Display yaw/pitch/roll and pose
             #    print("Tag: {}".format(tag_id))
                 poses.append((pose, weight))
-                yaw, pitch, roll = self.get_orientation(self.cameraMatrix, rot_mat, t)
+                yaw = self.get_orientation(self.cameraMatrix, R, t)
                 yaws.append((yaw, weight))
         #        print("Yaw: {} \n Pitch: {} \n Roll: {}".format(yaw,pitch,roll))
              
