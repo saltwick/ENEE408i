@@ -12,7 +12,7 @@ class Client():
         
         self.HEADER_LENGTH = 10
 
-        self.IP = "10.104.229.231"
+        self.IP = "10.104.84.250"
         self.PORT = 1234
         my_username = self.username
 

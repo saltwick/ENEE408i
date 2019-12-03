@@ -230,7 +230,7 @@ class Location_Thread(threading.Thread):
         self.load_area()
 
     def create_area(self):
-        hall_width = 30
+        hall_width = 32
         self.area = np.ones((self.area_size,self.area_size))*255
         # axis
         self.area = cv2.line(self.area,(self.area_size//2,0),
