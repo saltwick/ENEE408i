@@ -5,7 +5,7 @@ import threading
 
 HEADER_LENGTH = 10
 
-IP = "192.168.43.52"
+IP = "129.2.106.140"
 PORT = 1234
 my_username = input("Username: ")
 

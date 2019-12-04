@@ -30,7 +30,7 @@ sockets_list = [server_socket]
 # List of connected clients - socket as a key, user header and name as data
 clients = {}
 
-print(f'Listening for connections on {IP}:{PORT}...')
+print('Listening for connections on {}:{}...'.format(IP, PORT))
 
 # Handles message receiving
 def receive_message(client_socket):
@@ -118,7 +118,7 @@ while True:
             # Get user by notified socket, so we will know who sent the message
             user = clients[notified_socket]
 
-            print(f'Received message from {user["data"].decode("utf-8")}: {message["data"].decode("utf-8")}')
+            print('Received message from {}: {}'.format(user['data'].decode('utf-8'), message['data'].decode('utf-8')))
 
             # Iterate over connected clients and broadcast message
             for client_socket in clients:
