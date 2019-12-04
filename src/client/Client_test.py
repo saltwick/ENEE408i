@@ -9,7 +9,7 @@ class ClientThread():
     def run(self):
         while True:
             if self.SEND:
-                self.client.send("hi")
+                self.client.send("0,0")
                 self.SEND = False
             else:
                 rec = self.client.listen()

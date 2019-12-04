@@ -14,7 +14,7 @@ import sys
 sys.path.append('..')
 from vision import Tracker
 from vision import locator
-from client import clientclass
+from client import Client
 from math import sin, cos, radians, atan2, degrees
 #from multiprocessing import Process
 #from flask_ask import Ask, statement, question
@@ -44,6 +44,7 @@ prev_controls = {
         "Missing": 0
 }
 SEND_LOCATION = True
+DISTRESS_LOCATION = (100,100)
 POSE = {
     "x": np.array([100]),
     "y": np.array([100]),
@@ -212,11 +213,20 @@ class Navigation_Thread(threading.Thread):
 
         with self.lock:
             print("Arrived at location {}".format((x,y)))
+        return True
 
     def run(self):
-        time.sleep(3)
-        print("going to origin")
-        self.goto(0,4)
+        global DISTRESS_LOCATION
+
+        while True:
+            if DISTRESS_LOCATION != (100,100):
+                print("Going to {}".format(DISTRESS_LOCATION))
+                ret = self.goto(DISTRESS_LOCATION[0], DISTRESS_LOCATION[1])
+                if ret:
+                    break
+
+        print("Navigation Thread Exiting")
+
         
         
 """
@@ -487,7 +497,7 @@ class Client_Thread(threading.Thread):
         print("Connecting to the chat server")
         # server IP
         IP = "10.104.84.250"
-        self.client = clientclass.ChatClientClass("BIG_AL", IP)
+        self.client = Client.Client("BIG_AL", IP)
 
     def run(self):
         time.sleep(3)
@@ -495,15 +505,25 @@ class Client_Thread(threading.Thread):
             global POSE
             global HALT
             global SEND_LOCATION
+            global DISTRESS_LOCATION
             if HALT:
-                print("Client Thread Exiting")
                 break
+
             loc = [POSE['x'].item(), POSE['y'].item()]
             loc = [str(int(x)) for x in loc]
             if SEND_LOCATION:
-                self.client.send(loc[0], loc[1])
+                self.client.send(','.join(loc))
                 SEND_LOCATION = False
+            else:
+                rec = self.client.listen()
+                if rec != None:
+                    d_loc = rec.split(',')
+                    DISTRESS_LOCATION = (int(d_loc[0]), int(d_loc[1]))
+                    print("Distress Received")
+                    # Received distress
+                    break
 
+        print("Client Thread Exiting")
 """
 Thread class for Flask Server
 """

@@ -15,7 +15,7 @@ f = Flask_Thread(app)
 
 # Start Threads
 arduino.start()
-#navigate.start()
+navigate.start()
 #vision.start()
 local.start()
 f.setDaemon(True)
@@ -23,7 +23,7 @@ comms.start()
 #f.start()
 # Join threads
 arduino.join()
-#navigate.join()
+navigate.join()
 #vision.join()
 local.join()
 comms.join()
