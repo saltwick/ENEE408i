@@ -121,8 +121,35 @@ class Locator:
         dist = np.linalg.norm(p1-p2)
         return max_weight/dist
         
+    
+    def find_tag(self, frame, tag_id):
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        res = self.det.detect(gray)
+        tagObject = None
+        for r in res:
+            if r.tag_id == tag_id:
+                tagObject = r
+
+        if tagObject:
+
+            corners = np.array(tagObject.corners, dtype=np.float32).reshape((4, 2, 1))
+            cornersList = []
+            for c in corners:
+                cornersList.append([int(x) for x in c])
+            cornersList = np.array(cornersList, dtype=np.int32)
+            ((x, y), radius) = cv2.minEnclosingCircle(cornersList)
+            M = cv2.moments(cornersList)
+            center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+            filteredPtsRadius = [radius]
+            filteredPtsX = [center[0]]
+            filteredPtsY = [center[1]]   
+            return filteredPtsRadius[0], filteredPtsX[0], filteredPtsY[0]
+
+        else:
+            return None, None, None
 
     def locate(self, frame, buff):
+        tags = [] 
         if self.c != 0 and self.c % buff == 0: 
             self.c = 0
             if self.pose_buff and self.yaw_buff:

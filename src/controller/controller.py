@@ -17,7 +17,7 @@ arduino.start()
 navigate.start()
 #vision.start()
 local.start()
-f.setDaemon(True)
+#f.setDaemon(True)
 
 #comms.start()
 #f.start()

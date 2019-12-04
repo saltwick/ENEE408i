@@ -18,7 +18,7 @@ from client import Client
 from math import sin, cos, radians, atan2, degrees
 from multiprocessing import Process
 
-from flask_ask import Ask, statement, question
+#from flask_ask import Ask, statement, question
 import socket
 import sys
 import errno
@@ -26,11 +26,8 @@ import random
 from queue import *
 
 
-
-
-
 app = Flask(__name__)
-ask = Ask(app, '/')
+#ask = Ask(app, '/')
 
 
 
@@ -68,6 +65,13 @@ POSE = {
 }
 
 camera_angle = 0
+tag_not_found = True
+tag_to_find = 0
+tag_info = {
+        "r": 0,
+        "x": 0,
+        "y": 0
+        }
 """
 Thread class for Arduino Control
 """
@@ -131,7 +135,52 @@ class Navigation_Thread(threading.Thread):
         prev_controls['Missing'] = controls['Missing']
         prev_controls['TurnLeft'] = controls['TurnLeft']
         prev_controls['TurnRight'] = controls['TurnRight']
+    
+    def goto_tag(self):
+        desiredDistance = 100
+        radiusInRangeLowerBound, radiusInRangeUpperBound = desiredDistance - 10, desiredDistance + 10
+        centerRightBound, centerLeftBound = 400, 200
+        radiusTooCloseLowerLimit = 250
+        global tag_to_find
+        global tag_not_found
+        inPosition = False
+        print(tag_to_find)
+        # Spin to look for tag
+        while tag_not_found:
+            print("Tag {} not found".format(tag_to_find))
+            controls['TurnLeft'] = 27
 
+        while not inPosition:
+            global tag_info
+            radius = tag_info['r']
+            x = tag_info['x']
+            y = tag_info['y']
+            commandString = ''
+            # Determine command to send to arudino/motors
+            if radius > radiusTooCloseLowerLimit:
+                commandString = "MOVE BACKWARD - TOO CLOSE TO TURN"
+                controls['MoveBackward'] = 27
+            elif x > centerRightBound:
+                commandString = "GO RIGHT"
+                controls['TurnRight'] = 27
+            elif x < centerLeftBound:
+                commandString = "GO LEFT"
+                controls['TurnLeft'] = 27
+            elif radius < radiusInRangeLowerBound:
+                commandString = "MOVE FORWARD"
+                controls['MoveForward'] = 27
+            elif radius > radiusInRangeUpperBound:
+                commandString = "MOVE BACKWARD"
+                controls['MoveBackward'] = 27
+            elif radiusInRangeLowerBound < radius < radiusInRangeUpperBound:
+                commandString = "STOP MOVING - IN RANGE"
+                self.stop()
+                inPosition = True
+            print(commandString, x, y)
+
+        print("Arrived at tag {}".format(tag_to_find))    
+
+        
     def goto(self, x,y):
         global POSE
         global controls
@@ -232,6 +281,32 @@ class Navigation_Thread(threading.Thread):
         return True
 
     def run(self):
+
+        global tag_to_find
+        tag_to_find = 0
+        time.sleep(3)
+        self.goto_tag()
+        tag_to_find = 41
+        time.sleep(3)
+        self.goto_tag()
+        tag_to_find = 37
+        time.sleep(3)
+        self.goto_tag()
+        tag_to_find = 18
+        time.sleep(3)
+        self.goto_tag()
+        tag_to_find = 24
+        time.sleep(3)
+        self.goto_tag()
+        tag_to_find = 30
+        time.sleep(3)
+        self.goto_tag()
+        tag_to_find = 33
+        time.sleep(3)
+        self.goto_tag()
+        
+
+        """
         global DISTRESS_LOCATION
         time.sleep(3)
         while True:
@@ -240,6 +315,7 @@ class Navigation_Thread(threading.Thread):
                 ret = self.goto(DISTRESS_LOCATION[0], DISTRESS_LOCATION[1])
                 if ret:
                     break
+        """
 
         print("Navigation Thread Exiting")
 
@@ -252,7 +328,7 @@ Thread class for April Tag Localizing
 class Location_Thread(threading.Thread):
     def __init__(self, lock):
         threading.Thread.__init__(self)
-        self.cap = WebcamVideoStream(src=0).start()
+        self.cap = WebcamVideoStream(src=2).start()
         self.lock = lock
         self.loc = locator.Locator() 
         self.area_size = 160
@@ -330,6 +406,9 @@ class Location_Thread(threading.Thread):
         global controls
         global POSE
         global camera_angle
+        global tag_to_find
+        global tag_info
+        global tag_not_found
         mul = 4
         d = 30
         while True:
@@ -337,6 +416,15 @@ class Location_Thread(threading.Thread):
             wp = self.loc.get_worldPoints()
             camera_angle = self.set_camera_angle(wp) 
             ret, pose, yaw, heading = self.loc.locate(frame, 10)
+            rad, x, y = self.loc.find_tag(frame, tag_to_find)
+            if not rad or not x or not y:
+                tag_not_found = True
+            else:
+                tag_not_found = False
+                tag_info['x'] = x
+                tag_info['y'] = y
+                tag_info['r'] = rad
+
             #print(heading)
             if ret:
                # print(degrees(yaw))
@@ -352,7 +440,6 @@ class Location_Thread(threading.Thread):
                 POSE['y'] = pose[2]
                 POSE['heading'] = yaw
             
-
             # Display frame
             cv2.imshow('frame', frame)
 
@@ -553,6 +640,8 @@ class Flask_Thread(threading.Thread):
     def run(self):
         app.run(debug=False, host='127.0.0.1')   
 
+    """
+
     
     @ask.launch
     def launched():
@@ -603,7 +692,7 @@ class Flask_Thread(threading.Thread):
         value = random.randint(0,6)
         print(value)
         return question(jokes[value][0]).reprompt(jokes[value][1])
-
+"""
         
 
 
