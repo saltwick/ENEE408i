@@ -161,7 +161,13 @@ class Navigation_Thread(threading.Thread):
             y = tag_info['y']
             commandString = ''
             # Determine command to send to arudino/motors
-            if radius > radiusTooCloseLowerLimit:
+            if tag_not_found:
+                commandString = "SPIN TO WIN"
+                controls['TurnRight'] = 27
+                time.sleep(0.25)
+                self.stop()
+                time.sleep(1.0)
+            elif radius > radiusTooCloseLowerLimit:
                 commandString = "MOVE BACKWARD - TOO CLOSE TO TURN"
                 controls['MoveBackward'] = 27
             elif x > centerRightBound:
@@ -430,6 +436,9 @@ class Location_Thread(threading.Thread):
             rad, x, y = self.loc.find_tag(frame, tag_to_find)
             if not rad or not x or not y:
                 tag_not_found = True
+                tag_info['x'] = None
+                tag_info['y'] = None
+                tag_info['r'] = None
             else:
                 tag_not_found = False
                 tag_info['x'] = x
