@@ -49,7 +49,8 @@ class Client():
             if not self.to_send.empty():
                 message = self.to_send.get()
                 message = message.encode('utf-8')
-                message_header = f"{len(message):<{self.HEADER_LENGTH}}".encode('utf-8')
+#                message_header = f"{len(message):<{self.HEADER_LENGTH}}".encode('utf-8')
+                message_header = "{}:<{}".format(len(message), self.HEADER_LENGTH).encode('utf-8')
                 self.client_socket.send(message_header + message)
 
     def send(self, message):
