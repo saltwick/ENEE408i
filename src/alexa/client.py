@@ -23,21 +23,21 @@ client_socket.setblocking(False)
 # Prepare username and header and send them
 # We need to encode username to bytes, then count number of bytes and prepare header of fixed size, that we encode to bytes as well
 username = my_username.encode('utf-8')
-username_header = f"{len(username):<{HEADER_LENGTH}}".encode('utf-8')
+username_header = (str(len(username)) + ":<" + str(HEADER_LENGTH)).encode('utf-8')
 client_socket.send(username_header + username)
 
 def send():
     while True:
 
         # Wait for user to input a message
-        message = input(f'{my_username} > ')
+        message = input(my_username + ' > ')
 
         # If message is not empty - send it
         if message:
 
             # Encode message to bytes, prepare header and convert to bytes, like for username above, then send
             message = message.encode('utf-8')
-            message_header = f"{len(message):<{HEADER_LENGTH}}".encode('utf-8')
+            message_header = (str(len(message)) + ":<" + str(HEADER_LENGTH)).encode('utf-8')
             client_socket.send(message_header + message)
 
 
@@ -69,7 +69,7 @@ def receive():
                 message = client_socket.recv(message_length).decode('utf-8')
 
                 # Print message
-                print(f'\n{username} > {message}')
+                print('\n' + username+ ">"+ message)
                 #print(my_username + ' > ')
 
         except IOError as e:

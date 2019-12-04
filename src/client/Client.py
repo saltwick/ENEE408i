@@ -1,20 +1,19 @@
-import threading
 import socket
 import sys
 import errno
+import threading
 from queue import *
+IP = "129.2.106.140"
+PORT = 1234
 
-class Client():
-    def __init__(self, username, ip):
-        self.username = username
-        self.to_send = Queue()
+class Client(threading.Thread):
+    def __init__(self, username):
+        threading.Thread.__init__(self)
         self.received = Queue()
-        
         self.HEADER_LENGTH = 10
+        my_username = username
 
-        self.IP = ip
-        self.PORT = 1234
-        my_username = self.username
+        
 
         # Create a socket
         # socket.AF_INET - address family, IPv4, some otehr possible are AF_INET6, AF_BLUETOOTH, AF_UNIX
@@ -22,39 +21,24 @@ class Client():
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
         # Connect to a given ip and port
-        self.client_socket.connect((self.IP, self.PORT))
+        self.client_socket.connect((IP, PORT))
 
         # Set connection to non-blocking state, so .recv() call won;t block, just return some exception we'll handle
         self.client_socket.setblocking(False)
 
         # Prepare username and header and send them
         # We need to encode username to bytes, then count number of bytes and prepare header of fixed size, that we encode to bytes as well
-        username = my_username.encode('utf-8')
-#        username_header = f"{len(username):<{self.HEADER_LENGTH}}".encode('utf-8')
-        username_header = "{}:<{}".format(len(username), self.HEADER_LENGTH).encode('utf-8')
-        self.client_socket.send(username_header + username)
-
-
-        self.t1 = threading.Thread(target=self.sendLoop, name='t1')
+        self.username = my_username.encode('utf-8')
+        self.username_header = "{}:<{}".format(len(username), self.HEADER_LENGTH).encode('utf-8')
+        self.client_socket.send(self.username_header + self.username)
         self.t2 = threading.Thread(target=self.receiveLoop, name='t2')
-
-        self.t1.start()
-        self.t2.start()        
-        
-
-    def sendLoop(self):
-        while True:
-            message = None
-            # Wait for user to input a message
-            if not self.to_send.empty():
-                message = self.to_send.get()
-                message = message.encode('utf-8')
-#                message_header = f"{len(message):<{self.HEADER_LENGTH}}".encode('utf-8')
-                message_header = "{}:<{}".format(len(message), self.HEADER_LENGTH).encode('utf-8')
-                self.client_socket.send(message_header + message)
+        self.t2.start()
 
     def send(self, message):
-        self.to_send.put(message)
+        message = message.encode('utf-8')
+        message_header = "{}:<{}".format(len(message), self.HEADER_LENGTH).encode('utf-8')
+        self.client_socket.send(message_header + message)
+
 
     def receiveLoop(self):
         while True:
@@ -80,9 +64,9 @@ class Client():
                     message_header = self.client_socket.recv(self.HEADER_LENGTH)
                     message_length = int(message_header.decode('utf-8').strip())
                     message = self.client_socket.recv(message_length).decode('utf-8')
-
                     # Print message
-                    self.received.put(message)
+                    if message != None:
+                        self.received.put(message)
 
             except IOError as e:
                 # This is normal on non blocking connections - when there are no incoming data error is going to be raised
@@ -104,9 +88,3 @@ class Client():
     def listen(self):
         if not self.received.empty():
             return self.received.get()
-
-    # t1 = threading.Thread(target=send, name='t1')
-    # t2 = threading.Thread(target=listen, name='t2')
-
-    # t1.start()
-    # t2.start()

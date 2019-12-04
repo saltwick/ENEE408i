@@ -124,6 +124,7 @@ class Navigation_Thread(threading.Thread):
 
     def stop(self):
         #self.update_controls()
+        global controls
         for k in controls.keys():
             controls[k] = 0 
 
@@ -137,7 +138,7 @@ class Navigation_Thread(threading.Thread):
         prev_controls['TurnRight'] = controls['TurnRight']
     
     def goto_tag(self):
-        desiredDistance = 100
+        desiredDistance = 150
         radiusInRangeLowerBound, radiusInRangeUpperBound = desiredDistance - 10, desiredDistance + 10
         centerRightBound, centerLeftBound = 400, 200
         radiusTooCloseLowerLimit = 250
@@ -149,6 +150,9 @@ class Navigation_Thread(threading.Thread):
         while tag_not_found:
             print("Tag {} not found".format(tag_to_find))
             controls['TurnLeft'] = 27
+            time.sleep(0.5)
+            self.stop()
+            time.sleep(1.0)
 
         while not inPosition:
             global tag_info
@@ -163,9 +167,15 @@ class Navigation_Thread(threading.Thread):
             elif x > centerRightBound:
                 commandString = "GO RIGHT"
                 controls['TurnRight'] = 27
+                time.sleep(0.25)
+                self.stop()
+                time.sleep(1.0)
             elif x < centerLeftBound:
                 commandString = "GO LEFT"
                 controls['TurnLeft'] = 27
+                time.sleep(0.25)
+                self.stop()
+                time.sleep(1.0)
             elif radius < radiusInRangeLowerBound:
                 commandString = "MOVE FORWARD"
                 controls['MoveForward'] = 27
@@ -176,7 +186,8 @@ class Navigation_Thread(threading.Thread):
                 commandString = "STOP MOVING - IN RANGE"
                 self.stop()
                 inPosition = True
-            print(commandString, x, y)
+            
+            print(commandString, x, y, radius)
 
         print("Arrived at tag {}".format(tag_to_find))    
 
@@ -283,13 +294,13 @@ class Navigation_Thread(threading.Thread):
     def run(self):
 
         global tag_to_find
-        tag_to_find = 0
-        time.sleep(3)
-        self.goto_tag()
+        #tag_to_find = 0
+        #time.sleep(3)
+        #self.goto_tag()
         tag_to_find = 41
         time.sleep(3)
         self.goto_tag()
-        tag_to_find = 37
+        tag_to_find = 36
         time.sleep(3)
         self.goto_tag()
         tag_to_find = 18
@@ -328,7 +339,7 @@ Thread class for April Tag Localizing
 class Location_Thread(threading.Thread):
     def __init__(self, lock):
         threading.Thread.__init__(self)
-        self.cap = WebcamVideoStream(src=2).start()
+        self.cap = WebcamVideoStream(src=0).start()
         self.lock = lock
         self.loc = locator.Locator() 
         self.area_size = 160
@@ -599,8 +610,7 @@ class Client_Thread(threading.Thread):
         threading.Thread.__init__(self)
         print("Connecting to the chat server")
         # server IP
-        IP = "129.2.106.140"
-        self.client = Client.Client("BIG_AL", IP)
+        self.client = Client.Client("BIG_AL")
 
     def run(self):
         time.sleep(3)
