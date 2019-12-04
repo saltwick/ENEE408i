@@ -1,3 +1,5 @@
+#include <Servo.h>
+
 
 #include <stdbool.h>
 #include "./ultrasound.h"
@@ -10,7 +12,6 @@
 #include <LiquidCrystal_I2C.h>
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 #endif
-#include "Servo.h"
 
 
 // When uploading ensure that if using the Arduino IDE, that motor.c, motor.h, ultr   asound.c and ultrasound.h are added with
@@ -30,7 +31,8 @@ int priorPerson;
 int servoPos = 90;
 
 void setup() {
-  myservo.attach(13);
+  myservo.attach(9);
+  
 #if DEBUG
   lcd.begin();
   lcd.backlight();
@@ -38,11 +40,13 @@ void setup() {
   Serial.begin(38400);
   // Ultrasound setup
   initUltrasounds();
+  
   leftU = {LEFT_PING, -1};
   leftAngleU = {LEFT_ANGLE_ECHO, LEFT_ANGLE_TRIG,  -1};
   rightU = {RIGHT_PING, -1};
   rightAngleU = {RIGHT_ANGLE_ECHO, RIGHT_ANGLE_TRIG, -1};
   frontU = {MIDDLE_PING, -1};
+
   ultrasounds = {leftU, frontU, rightU, leftAngleU, rightAngleU};
   evaluateDist(&ultrasounds);
   //
@@ -56,22 +60,23 @@ void setup() {
   rightM = {  PWN_PIN_RIGHT,
               INA_PIN_RIGHT,
               INB_PIN_RIGHT,
-              EN_PIN_LEFT,
+              EN_PIN_RIGHT,
               false
            };
+
   motors  =  {leftM, rightM, R_L_RATIO, STATIONARY};
   initMotors(&motors);
-  currSpeed = 40;
   // Last time we saw a person where they to the left or right
   // 1 was to right
   // 0 unknown
   // -1 was to left
   priorPerson = 0;
+  delay(1000);
 
 }
 
 void loop() {
-  myservo.write(servoPos);
+
   byte commands[6];
   if (Serial.available() >= 6) {
     Serial.print("TEST");
@@ -125,7 +130,7 @@ void loop() {
           rotateClockwise(&motors, value);
         }
       } else if (cmd == 5) {
-        
+          myservo.write(0);
           int a = map(value, 0, 140, 0, 180);
           if (a > servoPos) {
             for (int i = servoPos; i <= a; i += 1) {

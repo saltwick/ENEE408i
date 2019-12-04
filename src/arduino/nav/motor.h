@@ -4,10 +4,12 @@
 extern "C" {
 #endif
 
-#define PWN_PIN_LEFT 9
+
+
+#define PWN_PIN_LEFT 11
 #define INA_PIN_LEFT 10
-#define INB_PIN_LEFT 11
-#define EN_PIN_LEFT 12
+#define INB_PIN_LEFT 12
+#define EN_PIN_LEFT 8
 
 #define PWN_PIN_RIGHT 3
 #define INA_PIN_RIGHT 4
@@ -17,8 +19,8 @@ extern "C" {
 #define MOTOR_UPPER_LIMIT_STRAIGHT 60
 #define MOTOR_LOWER_LIMIT_STRAIGHT 20
 
-#define MOTOR_UPPER_LIMIT_TURNING 35
-#define MOTOR_LOWER_LIMIT_TURNING 27
+#define MOTOR_UPPER_LIMIT_TURNING 35  
+#define MOTOR_LOWER_LIMIT_TURNING 20
 
 #define R_L_RATIO 1.07
 

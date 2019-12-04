@@ -15,6 +15,8 @@ void initMotors(Motors* motors) {
 
   digitalWrite(motors->right.en_pin, HIGH);
   digitalWrite(motors->left.en_pin, HIGH);
+  
+  
 }
 
 void setSpeed(Motor* motor, int speed) {
@@ -29,7 +31,7 @@ void setSpeed(Motor* motor, int speed) {
   } else if (speed > 0) {
     digitalWrite(motor->forward_pin, HIGH);
     digitalWrite(motor->backwards_pin, LOW);
-    analogWrite(motor->pwm_pin, speed);
+    analogWrite(motor->pwm_pin, fabs(speed));
   } else {
     stopMotor(motor);
   }
@@ -57,6 +59,7 @@ void stop(Motors* motors) {
 }
 
 void go_straight(Motors* motors, int rate) {
+    
   motors->turning_status = STRAIGHT;
   int speed = threshold_Straight(rate);
   setSpeed(&(motors->left), speed);
