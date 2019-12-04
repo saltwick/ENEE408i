@@ -14,8 +14,11 @@ import sys
 sys.path.append('..')
 from vision import Tracker
 from vision import locator
+from client import clientclass
 from math import sin, cos, radians, atan2, degrees
+#from multiprocessing import Process
 #from flask_ask import Ask, statement, question
+
 
 # Intialize Connection to Arduino
 AController = ArduinoController('/dev/ttyACM0', 38400)
@@ -40,7 +43,7 @@ prev_controls = {
         "TurnRight": 0,
         "Missing": 0
 }
-
+SEND_LOCATION = True
 POSE = {
     "x": np.array([100]),
     "y": np.array([100]),
@@ -472,6 +475,34 @@ class Counter_Thread(threading.Thread):
 
             count += 1
             time.sleep(1)
+
+
+"""
+Thread class for Chat Client
+
+"""
+class Client_Thread(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        print("Connecting to the chat server")
+        # server IP
+        IP = "10.104.84.250"
+        self.client = clientclass.ChatClientClass("BIG_AL", IP)
+
+    def run(self):
+        time.sleep(3)
+        while True:
+            global POSE
+            global HALT
+            global SEND_LOCATION
+            if HALT:
+                print("Client Thread Exiting")
+                break
+            loc = [POSE['x'].item(), POSE['y'].item()]
+            loc = [str(int(x)) for x in loc]
+            if SEND_LOCATION:
+                self.client.send(loc[0], loc[1])
+                SEND_LOCATION = False
 
 """
 Thread class for Flask Server

@@ -5,14 +5,14 @@ import errno
 from queue import *
 
 class Client():
-    def __init__(self, username):
+    def __init__(self, username, ip):
         self.username = username
         self.to_send = Queue()
         self.received = Queue()
         
         self.HEADER_LENGTH = 10
 
-        self.IP = "10.104.84.250"
+        self.IP = ip
         self.PORT = 1234
         my_username = self.username
 

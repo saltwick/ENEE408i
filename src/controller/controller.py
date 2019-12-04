@@ -1,8 +1,8 @@
 import threading 
 from threading import Lock
-from Threads import Arduino_Thread, Vision_Thread, Counter_Thread, Flask_Thread, Location_Thread, Navigation_Thread
+from Threads import Arduino_Thread, Vision_Thread, Counter_Thread, Flask_Thread, Location_Thread, Navigation_Thread, Client_Thread
 from flask import Flask
- 
+import multiprocessing
 app = Flask(__name__)
 lock = Lock()
 # Initialize threads
@@ -10,7 +10,7 @@ lock = Lock()
 arduino = Arduino_Thread()
 local = Location_Thread(lock)
 navigate = Navigation_Thread(lock)
-
+comms = Client_Thread()
 f = Flask_Thread(app)
 
 # Start Threads
@@ -19,10 +19,12 @@ arduino.start()
 #vision.start()
 local.start()
 f.setDaemon(True)
+comms.start()
 #f.start()
 # Join threads
 arduino.join()
 #navigate.join()
 #vision.join()
 local.join()
+comms.join()
 print("All threads have finished")

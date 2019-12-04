@@ -18,7 +18,7 @@ class ArduinoController():
 
     def send_message(self, msg):
         if not self.ser:
-            print('No device - cannot send message')
+            #print('No device - cannot send message')
             return
 
         if msg != self.prevControls: 
