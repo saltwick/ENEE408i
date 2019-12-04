@@ -4,44 +4,24 @@ import threading
 import socket
 import sys
 import errno
+import random
 from queue import *
-import serial.tools.list_ports
-import serial
 
 passedMessage = Queue()
 app = Flask(__name__)
 ask = Ask(app, '/')
-arduinoMessage = Queue()
 
 class AlexaThread(threading.Thread):
     def __init__(self, app):
         threading.Thread.__init__(self)
         self.app = app
 
+        #self.app.add_url_rule('/', 'home', view_func=self.home)
+        
     def run(self):
-        self.app.run(debug=False, host='127.0.0.1')
+        self.app.run(debug=False, host='127.0.0.1')   
 
-
-    def halt():
-	    valueToWrite= 0
-	    ser.write(struct.pack('>B', valueToWrite))
-
-    def right():
-        valueToWrite= 2
-        ser.write(struct.pack('>B', valueToWrite))
-
-    def left():
-        valueToWrite= 1
-        ser.write(struct.pack('>B', valueToWrite))
-
-    def forward():
-        valueToWrite= 3
-        ser.write(struct.pack('>B', valueToWrite))
-
-    def backward():
-        valueToWrite= 4
-        ser.write(struct.pack('>B', valueToWrite))
-
+    
     @ask.launch
     def launched():
         return question("Yo. I'm Big Al. If you need some kneecaps broken, I'm your man").reprompt(
@@ -52,46 +32,6 @@ class AlexaThread(threading.Thread):
     def default():
         return question("Big Al don't know what you mean. Do you want me to break some kneecaps?").reprompt(
             "Give me a job or let me watch the Yanks sweep the Sox")
-
-
-    @ask.intent('MoveIntent')
-    def move(direction):
-        msg = ""
-        if direction == 'left':
-            # left()
-            # time.sleep(1.0)
-            # halt()
-            msg = "Big Al has protected his left side blind spot"
-            arduinoMessage.put([0,0,0,50,0,0])
-
-        elif direction == 'right':
-            # right()
-            # time.sleep(1.0)
-            # halt()
-            msg = "There's a ton of cocaine to the right of me. Big Al's moving in"
-            arduinoMessage.put([0,0,0,0,50,0])
-
-        elif direction == 'forward':
-            # forward()
-            # time.sleep(4.0)
-            # halt()
-            msg = "Big Al moving in for the kill"
-            arduinoMessage.put([50,0,0,0,0,0])
-
-        elif direction == 'backward':
-            # backward()
-            # time.sleep(2.0)
-            # halt()
-            msg = "Big Al don't back down from nobody. Let me take a swing at him"
-        elif direction == 'halt':
-            # halt()
-            msg = "Big Al is staying right here"
-            arduinoMessage.put([0,0,0,0,0,0])
-
-        elif direction == "move":
-            return question("In what direction, bozo?").reprompt("Tell me where to go or let me die in peace")	
-        return question(msg).reprompt("Now what?")
-
 
     # @ask.intent('FollowIntent')
     # def followMe(command):
@@ -106,13 +46,33 @@ class AlexaThread(threading.Thread):
 
     @ask.intent('DistressIntent')
     def distress():
-
+        
         passedMessage.put("distress: 2.25,3.14")
-
+        
         return question("Distress signal sent").reprompt(
             "Move out. We got a job to do.")
 
+    @ask.intent('LocationIntent')
+    def location():
+        return question("I am in the classroom").reprompt("Now that you know where I am, I suggest running away before someone gets hurt")
 
+    @ask.intent('JokeIntent')
+    def joke():
+        jokes = [
+            ["What's red and bad for your teeth?", "A brick."],
+            ["If at first you don't succeed… then skydiving definitely isn't for you.", "Don't give up on me"],
+            ["Where does the person with one leg work?", "IHOP"],
+            ["My Grandfather has the heart of a lion and a lifetime ban from the Atlanta Zoo.", "Yeah, I come from a long line of romantics"],
+            ["How did the dentist suddenly become a brain surgeon?", "A slip of the hand."],
+            ["It turns out a major new study recently found that humans eat more bananas than monkeys.", "It’s true. I can’t remember the last time I ate a monkey."],
+            ["I hate double standards. Burn a body at a crematorium, you’re being a respectful friend. Do it at home and you’re “destroying evidence.", "I'll be here all week"]
+        ]
+
+        value = random.randint(0,6)
+        print(value)
+        return question(jokes[value][0]).reprompt(jokes[value][1])
+
+        
 class ClientThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
@@ -149,7 +109,7 @@ class ClientThread(threading.Thread):
                     message = passedMessage.get()
                 # Wait for user to input a message
                 # If message is not empty - send it
-
+                
                 if message:
                     # Encode message to bytes, prepare header and convert to bytes, like for username above, then send
                     message = message.encode('utf-8')
@@ -211,31 +171,9 @@ class ClientThread(threading.Thread):
         t2.start()
 
 
-class CommToArduino(threading.Thread):
-    def __init__(self):
-        # find arduino port
-        portArduino = ""
-        for port in list(serial.tools.list_ports.comports()):
-            if "Arduino" in str(port.manufacturer):
-                portArduino = port.device
-                break
-        self.serial = serial.Serial(portArduino, 38400)
-        threading.Thread.__init__(self)
-
-
-    def run(self):
-        while True:
-            if not arduinoMessage.empty():
-                self.serial.write(arduinoMessage.get())
-
-
-
-
 client = ClientThread()
 alexa = AlexaThread(app)
 
 client.start()
 alexa.start()
 
-commToArduino = CommToArduino()
-commToArduino.start()

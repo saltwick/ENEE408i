@@ -17,6 +17,5 @@ class ClientThread():
                     print(rec)
 
 
-
-c = ClientThread("Sam2", True)
+c = ClientThread("Sam", True)
 c.run()
