@@ -32,7 +32,7 @@ int servoPos = 90;
 
 void setup() {
   myservo.attach(9);
-  
+
 #if DEBUG
   lcd.begin();
   lcd.backlight();
@@ -40,7 +40,7 @@ void setup() {
   Serial.begin(38400);
   // Ultrasound setup
   initUltrasounds();
-  
+
   leftU = {LEFT_PING, -1};
   leftAngleU = {LEFT_ANGLE_ECHO, LEFT_ANGLE_TRIG,  -1};
   rightU = {RIGHT_PING, -1};
@@ -130,17 +130,17 @@ void loop() {
           rotateClockwise(&motors, value);
         }
       } else if (cmd == 5) {
-          myservo.write(0);
-          int a = map(value, 0, 140, 0, 180);
-          if (a > servoPos) {
-            for (int i = servoPos; i <= a; i += 1) {
-              myservo.write(i);
-              delay(25);
-            }
-          } else if (a < servoPos) {
-            for (int i = servoPos; i >= a; i -= 1) {
-              myservo.write(i);
-              delay(25);
+        myservo.write(0);
+        int a = map(value, 0, 140, 0, 180);
+        if (a > servoPos) {
+          for (int i = servoPos; i <= a; i += 1) {
+            myservo.write(i);
+            delay(25);
+          }
+        } else if (a < servoPos) {
+          for (int i = servoPos; i >= a; i -= 1) {
+            myservo.write(i);
+            delay(25);
           }
         }
       }
