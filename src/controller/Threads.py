@@ -16,7 +16,7 @@ from vision import Tracker
 from vision import locator
 from client import Client
 from math import sin, cos, radians, atan2, degrees
-#from multiprocessing import Process
+from multiprocessing import Process
 #from flask_ask import Ask, statement, question
 
 
@@ -44,7 +44,7 @@ prev_controls = {
         "Missing": 0
 }
 SEND_LOCATION = True
-DISTRESS_LOCATION = (100,100)
+DISTRESS_LOCATION = (-60,20)
 POSE = {
     "x": np.array([100]),
     "y": np.array([100]),
@@ -217,7 +217,7 @@ class Navigation_Thread(threading.Thread):
 
     def run(self):
         global DISTRESS_LOCATION
-
+        time.sleep(3)
         while True:
             if DISTRESS_LOCATION != (100,100):
                 print("Going to {}".format(DISTRESS_LOCATION))
@@ -512,6 +512,7 @@ class Client_Thread(threading.Thread):
             loc = [POSE['x'].item(), POSE['y'].item()]
             loc = [str(int(x)) for x in loc]
             if SEND_LOCATION:
+                print("sending location")
                 self.client.send(','.join(loc))
                 SEND_LOCATION = False
             else:

@@ -3,7 +3,7 @@ import threading
 
 class ClientThread():
     def __init__(self, name, send):
-        self.client = Client(name, "129.2.106.140")
+        self.client = Client(name, "10.104.84.250")
         self.SEND = send
     
     def run(self):
