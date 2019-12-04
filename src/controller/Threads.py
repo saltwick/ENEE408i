@@ -3,6 +3,7 @@ import cv2
 import time
 import serial
 from imutils.video import FPS, WebcamVideoStream
+import imutils
 import threading
 from threading import Lock
 import apriltag
@@ -18,7 +19,7 @@ from client import Client
 from math import sin, cos, radians, atan2, degrees
 from multiprocessing import Process
 
-#from flask_ask import Ask, statement, question
+from flask_ask import Ask, statement, question
 import socket
 import sys
 import errno
@@ -27,11 +28,11 @@ from queue import *
 
 
 app = Flask(__name__)
-#ask = Ask(app, '/')
+ask = Ask(app, '/')
 
 
 
-
+TIME_TO_GO = False
 
 # Intialize Connection to Arduino
 AController = ArduinoController('/dev/ttyACM0', 38400)
@@ -137,20 +138,23 @@ class Navigation_Thread(threading.Thread):
         prev_controls['TurnLeft'] = controls['TurnLeft']
         prev_controls['TurnRight'] = controls['TurnRight']
     
-    def goto_tag(self):
-        desiredDistance = 150
+    def goto_tag(self, desiredDistance):
         radiusInRangeLowerBound, radiusInRangeUpperBound = desiredDistance - 10, desiredDistance + 10
-        centerRightBound, centerLeftBound = 400, 200
+        centerRightBound, centerLeftBound = 900, 300
         radiusTooCloseLowerLimit = 250
         global tag_to_find
         global tag_not_found
+        global HALT
         inPosition = False
+        speed = 50
         print(tag_to_find)
         # Spin to look for tag
         while tag_not_found:
+            if HALT:
+                break
             print("Tag {} not found".format(tag_to_find))
-            controls['TurnLeft'] = 27
-            time.sleep(0.5)
+            controls['TurnRight'] = speed
+            time.sleep(0.75)
             self.stop()
             time.sleep(1.0)
 
@@ -161,41 +165,46 @@ class Navigation_Thread(threading.Thread):
             y = tag_info['y']
             commandString = ''
             # Determine command to send to arudino/motors
+            if HALT:
+                break
             if tag_not_found:
-                commandString = "SPIN TO WIN"
-                controls['TurnRight'] = 27
-                time.sleep(0.25)
-                self.stop()
-                time.sleep(1.0)
+                time.sleep(1)
+                if tag_not_found:
+                    commandString = "SPIN TO WIN"
+                    controls['TurnRight'] = speed
+                    time.sleep(0.70)
+                    self.stop()
+                    time.sleep(1.0)
+    
             elif radius > radiusTooCloseLowerLimit:
                 commandString = "MOVE BACKWARD - TOO CLOSE TO TURN"
-                controls['MoveBackward'] = 27
+                controls['MoveBackward'] = speed
             elif x > centerRightBound:
                 commandString = "GO RIGHT"
-                controls['TurnRight'] = 27
-                time.sleep(0.25)
+                controls['TurnRight'] = speed
+                time.sleep(0.5)
                 self.stop()
                 time.sleep(1.0)
             elif x < centerLeftBound:
                 commandString = "GO LEFT"
-                controls['TurnLeft'] = 27
-                time.sleep(0.25)
+                controls['TurnLeft'] = speed
+                time.sleep(0.5)
                 self.stop()
                 time.sleep(1.0)
             elif radius < radiusInRangeLowerBound:
                 commandString = "MOVE FORWARD"
-                controls['MoveForward'] = 27
+                controls['MoveForward'] = speed
             elif radius > radiusInRangeUpperBound:
                 commandString = "MOVE BACKWARD"
-                controls['MoveBackward'] = 27
+                controls['MoveBackward'] = speed
             elif radiusInRangeLowerBound < radius < radiusInRangeUpperBound:
                 commandString = "STOP MOVING - IN RANGE"
                 self.stop()
                 inPosition = True
             
             print(commandString, x, y, radius)
-
-        print("Arrived at tag {}".format(tag_to_find))    
+        if inPosition:
+            print("Arrived at tag {}".format(tag_to_find))    
 
         
     def goto(self, x,y):
@@ -298,32 +307,57 @@ class Navigation_Thread(threading.Thread):
         return True
 
     def run(self):
+        global TIME_TO_GO
+        tags = [(0, 150), (41,150), (36,150), (24,120), (26,170), (33,180)]
+        tags = tags[1:]
+        while not TIME_TO_GO:
+            time.sleep(0.1)
 
         global tag_to_find
-        #tag_to_find = 0
-        #time.sleep(3)
-        #self.goto_tag()
+        for tag, dist in tags:
+            if HALT:
+                self.stop()
+                return
+            tag_to_find = tag
+            time.sleep(3)
+            self.goto_tag(dist)
+
+        print("Navigation Thread Exiting")
+        self.stop()
+"""
+        if HALT:
+            return
         tag_to_find = 41
         time.sleep(3)
-        self.goto_tag()
+        self.goto_tag(150)
+        if HALT:
+            return
         tag_to_find = 36
         time.sleep(3)
-        self.goto_tag()
+        self.goto_tag(160)
+        if HALT:
+            return
         tag_to_find = 18
         time.sleep(3)
-        self.goto_tag()
+        self.goto_tag(170)
+        if HALT:
+            return
         tag_to_find = 24
         time.sleep(3)
-        self.goto_tag()
+        self.goto_tag(140)
+        if HALT:
+            return
         tag_to_find = 30
         time.sleep(3)
-        self.goto_tag()
+        self.goto_tag(150)
+        if HALT:
+            return
         tag_to_find = 33
         time.sleep(3)
-        self.goto_tag()
-        
+        self.goto_tag(150)
+        if HALT:
+            return 
 
-        """
         global DISTRESS_LOCATION
         time.sleep(3)
         while True:
@@ -334,7 +368,6 @@ class Navigation_Thread(threading.Thread):
                     break
         """
 
-        print("Navigation Thread Exiting")
 
         
         
@@ -433,7 +466,7 @@ class Location_Thread(threading.Thread):
             wp = self.loc.get_worldPoints()
             camera_angle = self.set_camera_angle(wp) 
             ret, pose, yaw, heading = self.loc.locate(frame, 10)
-            rad, x, y = self.loc.find_tag(frame, tag_to_find)
+            rad, x, y, tag_loc = self.loc.find_tag(frame, tag_to_find)
             if not rad or not x or not y:
                 tag_not_found = True
                 tag_info['x'] = None
@@ -462,6 +495,11 @@ class Location_Thread(threading.Thread):
             
             # Display frame
             cv2.imshow('frame', frame)
+            if len(tag_loc) > 0:
+                tag_loc = tag_loc[0]
+                tag_x = tag_loc[0]
+                tag_y = tag_loc[2]
+                self.area = cv2.circle(self.area, (4*(tag_x+self.area_size//2), 4*(tag_y+self.area_size//2)), 5, (0,0,255), 2)
 
             # Display map
             cv2.imshow('map', self.area)
@@ -619,9 +657,11 @@ class Client_Thread(threading.Thread):
         threading.Thread.__init__(self)
         print("Connecting to the chat server")
         # server IP
-        self.client = Client.Client("BIG_AL")
+        self.client = Client.Client("BIGal")
 
     def run(self):
+        self.client.send("Connected")
+        
         time.sleep(3)
         while True:
             global POSE
@@ -659,8 +699,6 @@ class Flask_Thread(threading.Thread):
     def run(self):
         app.run(debug=False, host='127.0.0.1')   
 
-    """
-
     
     @ask.launch
     def launched():
@@ -681,6 +719,8 @@ class Flask_Thread(threading.Thread):
 
     @ask.intent('SleepIntent')
     def sleep():
+        global HALT
+        HALT = True
         return statement("That'll be 500 big ones for today. Big Al out")
 
 
@@ -691,27 +731,41 @@ class Flask_Thread(threading.Thread):
         
         return question("Distress signal sent").reprompt(
             "Move out. We got a job to do.")
+    
+    @ask.intent('FindTagIntent')
+    def distress():
+        global TIME_TO_GO
+        TIME_TO_GO = True
+        return question("Move out. We got a job to do.").reprompt("We at the drop off yet?")
 
     @ask.intent('LocationIntent')
     def location():
-        return question("I am in the classroom").reprompt("Now that you know where I am, I suggest running away before someone gets hurt")
+        global POSE
+        x = POSE['x']
+        y = POSE['y']
+        s = ""
+        if y < 0:
+            s = "hallway"
+        else:
+            s = "classroom"
+
+        return question("I am in the {}".format(s)).reprompt("Now that you know where I am, I suggest running away before someone gets hurt")
 
     @ask.intent('JokeIntent')
     def joke():
         jokes = [
             ["What's red and bad for your teeth?", "A brick."],
-            ["If at first you don't succeed… then skydiving definitely isn't for you.", "Don't give up on me"],
+            ["If at first you don't succeed then skydiving definitely isn't for you.", "Don't give up on me"],
             ["Where does the person with one leg work?", "IHOP"],
             ["My Grandfather has the heart of a lion and a lifetime ban from the Atlanta Zoo.", "Yeah, I come from a long line of romantics"],
             ["How did the dentist suddenly become a brain surgeon?", "A slip of the hand."],
-            ["It turns out a major new study recently found that humans eat more bananas than monkeys.", "It’s true. I can’t remember the last time I ate a monkey."],
-            ["I hate double standards. Burn a body at a crematorium, you’re being a respectful friend. Do it at home and you’re “destroying evidence.", "I'll be here all week"]
+            ["It turns out a major new study recently found that humans eat more bananas than monkeys.", "It's true. I can't remember the last time I ate a monkey."],
+            ["I hate double standards. Burn a body at a crematorium, you're being a respectful friend. Do it at home and you're destroying evidence.", "I'll be here all week"]
         ]
 
         value = random.randint(0,6)
         print(value)
         return question(jokes[value][0]).reprompt(jokes[value][1])
-"""
         
 
 

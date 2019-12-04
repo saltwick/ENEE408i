@@ -15,23 +15,22 @@ f = Flask_Thread()
 # Start Threads
 arduino.start()
 navigate.start()
+
 #vision.start()
 local.start()
-#f.setDaemon(True)
+f.setDaemon(True)
 
 #comms.start()
-#f.start()
+f.start()
 # Join threads
-alexa = Flask_Thread()
+#alexa = Flask_Thread()
 
-alexa.start()
+#alexa.start()
 
-alexa.join()
+#alexa.join()
 arduino.join()
 navigate.join()
 #vision.join()
 local.join()
 #comms.join()
 print("All threads have finished")
-
-

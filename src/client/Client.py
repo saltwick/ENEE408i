@@ -3,7 +3,7 @@ import sys
 import errno
 import threading
 from queue import *
-IP = "129.2.106.140"
+IP = "10.104.20.243"
 PORT = 1234
 
 class Client(threading.Thread):
@@ -29,7 +29,7 @@ class Client(threading.Thread):
         # Prepare username and header and send them
         # We need to encode username to bytes, then count number of bytes and prepare header of fixed size, that we encode to bytes as well
         self.username = my_username.encode('utf-8')
-        self.username_header = "{}:<{}".format(len(username), self.HEADER_LENGTH).encode('utf-8')
+        self.username_header = "{}:<{}".format(len(self.username), self.HEADER_LENGTH).encode('utf-8')
         self.client_socket.send(self.username_header + self.username)
         self.t2 = threading.Thread(target=self.receiveLoop, name='t2')
         self.t2.start()
@@ -38,7 +38,6 @@ class Client(threading.Thread):
         message = message.encode('utf-8')
         message_header = "{}:<{}".format(len(message), self.HEADER_LENGTH).encode('utf-8')
         self.client_socket.send(message_header + message)
-
 
     def receiveLoop(self):
         while True:

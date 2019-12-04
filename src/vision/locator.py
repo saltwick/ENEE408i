@@ -143,10 +143,10 @@ class Locator:
             filteredPtsRadius = [radius]
             filteredPtsX = [center[0]]
             filteredPtsY = [center[1]]   
-            return filteredPtsRadius[0], filteredPtsX[0], filteredPtsY[0]
+            return filteredPtsRadius[0], filteredPtsX[0], filteredPtsY[0], self.world_points[tag_id]
 
         else:
-            return None, None, None
+            return None, None, None, []
 
     def locate(self, frame, buff):
         tags = [] 
@@ -155,6 +155,7 @@ class Locator:
             if self.pose_buff and self.yaw_buff:
                 p = np.median(self.pose_buff, axis=0)
                 y = np.median(self.yaw_buff)
+
                 self.last = (self.ret, p, y, self.heading)
                 return self.ret, p, y, self.heading
             else:
