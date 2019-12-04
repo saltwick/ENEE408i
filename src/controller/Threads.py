@@ -17,7 +17,23 @@ from vision import locator
 from client import Client
 from math import sin, cos, radians, atan2, degrees
 from multiprocessing import Process
-#from flask_ask import Ask, statement, question
+
+from flask_ask import Ask, statement, question
+import socket
+import sys
+import errno
+import random
+from queue import *
+
+
+
+
+
+app = Flask(__name__)
+ask = Ask(app, '/')
+
+
+
 
 
 # Intialize Connection to Arduino
@@ -44,7 +60,7 @@ prev_controls = {
         "Missing": 0
 }
 SEND_LOCATION = True
-DISTRESS_LOCATION = (-60,20)
+DISTRESS_LOCATION = (-52,-33)
 POSE = {
     "x": np.array([100]),
     "y": np.array([100]),
@@ -496,7 +512,7 @@ class Client_Thread(threading.Thread):
         threading.Thread.__init__(self)
         print("Connecting to the chat server")
         # server IP
-        IP = "10.104.84.250"
+        IP = "129.2.106.140"
         self.client = Client.Client("BIG_AL", IP)
 
     def run(self):
@@ -529,29 +545,19 @@ class Client_Thread(threading.Thread):
 Thread class for Flask Server
 """
 class Flask_Thread(threading.Thread):
-    
-
-    def home(self):
-        return 'hi'
-
-    def __init__(self, app):
+    def __init__(self):
         threading.Thread.__init__(self)
-        self.app = app
-        self.app.add_url_rule('/', 'home', view_func=self.home)
-        # INIT FLASK SERVER HERE
 
-
-
-    # DEFINE OTHER FUNCTIONS FOR INTENTS HERE
+        #self.app.add_url_rule('/', 'home', view_func=self.home)
+        
     def run(self):
-        self.app.run(debug=False, host='0.0.0.0')   
-        # START FLASK SERVER HERE
+        app.run(debug=False, host='127.0.0.1')   
 
-    """
+    
     @ask.launch
     def launched():
         return question("Yo. I'm Big Al. If you need some kneecaps broken, I'm your man").reprompt(
-        "Give me a job or let me watch the Yanks sweep the Sox")
+            "Give me a job or let me watch the Yanks sweep the Sox")
 
 
     @ask.intent('AMAZON.FallbackIntent')
@@ -559,11 +565,45 @@ class Flask_Thread(threading.Thread):
         return question("Big Al don't know what you mean. Do you want me to break some kneecaps?").reprompt(
             "Give me a job or let me watch the Yanks sweep the Sox")
 
+    # @ask.intent('FollowIntent')
+    # def followMe(command):
 
-    @ask.intent('FollowIntent')
-    def followMe(command):
-        follow_me=True
-        return question("Big Al is on the prowl").reprompt(
-        "How much longer until I take care of this guy for good?")
+    #     return question("Big Al is on the prowl").reprompt(
+    #         "How much longer until I take care of this guy for good?")
 
-"""
+    @ask.intent('SleepIntent')
+    def sleep():
+        return statement("That'll be 500 big ones for today. Big Al out")
+
+
+    @ask.intent('DistressIntent')
+    def distress():
+        
+        passedMessage.put("distress: 2.25,3.14")
+        
+        return question("Distress signal sent").reprompt(
+            "Move out. We got a job to do.")
+
+    @ask.intent('LocationIntent')
+    def location():
+        return question("I am in the classroom").reprompt("Now that you know where I am, I suggest running away before someone gets hurt")
+
+    @ask.intent('JokeIntent')
+    def joke():
+        jokes = [
+            ["What's red and bad for your teeth?", "A brick."],
+            ["If at first you don't succeed… then skydiving definitely isn't for you.", "Don't give up on me"],
+            ["Where does the person with one leg work?", "IHOP"],
+            ["My Grandfather has the heart of a lion and a lifetime ban from the Atlanta Zoo.", "Yeah, I come from a long line of romantics"],
+            ["How did the dentist suddenly become a brain surgeon?", "A slip of the hand."],
+            ["It turns out a major new study recently found that humans eat more bananas than monkeys.", "It’s true. I can’t remember the last time I ate a monkey."],
+            ["I hate double standards. Burn a body at a crematorium, you’re being a respectful friend. Do it at home and you’re “destroying evidence.", "I'll be here all week"]
+        ]
+
+        value = random.randint(0,6)
+        print(value)
+        return question(jokes[value][0]).reprompt(jokes[value][1])
+
+        
+
+
