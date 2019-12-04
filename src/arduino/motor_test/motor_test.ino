@@ -1,8 +1,8 @@
-
-int PWM1 = 9;
+// left
+int PWM1 = 11;
 int inA1 = 10;
-int inB1 = 11;
-int EN1 = 12;
+int inB1 = 12;
+int EN1 = 8;
 
 int PWM2 = 3;
 int inA2 = 4;
