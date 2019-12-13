@@ -154,7 +154,7 @@ class Navigation_Thread(threading.Thread):
                 break
             print("Tag {} not found".format(tag_to_find))
             controls['TurnRight'] = speed
-            time.sleep(0.75)
+            time.sleep(1.0)
             self.stop()
             time.sleep(1.0)
 
@@ -172,7 +172,7 @@ class Navigation_Thread(threading.Thread):
                 if tag_not_found:
                     commandString = "SPIN TO WIN"
                     controls['TurnRight'] = speed
-                    time.sleep(0.70)
+                    time.sleep(1.0)
                     self.stop()
                     time.sleep(1.0)
     
@@ -193,7 +193,7 @@ class Navigation_Thread(threading.Thread):
                 time.sleep(1.0)
             elif radius < radiusInRangeLowerBound:
                 commandString = "MOVE FORWARD"
-                controls['MoveForward'] = speed
+                controls['MoveForward'] = speed - 10
             elif radius > radiusInRangeUpperBound:
                 commandString = "MOVE BACKWARD"
                 controls['MoveBackward'] = speed
@@ -308,8 +308,8 @@ class Navigation_Thread(threading.Thread):
 
     def run(self):
         global TIME_TO_GO
-        tags = [(0, 150), (41,150), (36,150), (24,120), (26,170), (33,180)]
-        tags = tags[1:]
+        tags = [(0, 150), (41,150), (36,160), (24,120), (26,170), (33,180)]
+        tags = tags[3:]
         while not TIME_TO_GO:
             time.sleep(0.1)
 
