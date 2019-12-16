@@ -115,13 +115,14 @@ class Locator:
         print(degrees(heading), degrees(yaw), degrees(bank))
         """
         return yaw
-    
+   
+    # Calculate weight function based on distance between points
     def calc_weight(self, p1, p2):
         max_weight = 150
         dist = np.linalg.norm(p1-p2)
         return max_weight/dist
         
-    
+    # Locate a tag in a frame and return radius, x,y, worldpoints 
     def find_tag(self, frame, tag_id):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         res = self.det.detect(gray)
@@ -148,6 +149,7 @@ class Locator:
         else:
             return None, None, None, []
 
+    # Return robot position and heading based on April Tag localization
     def locate(self, frame, buff):
         tags = [] 
         if self.c != 0 and self.c % buff == 0: 
