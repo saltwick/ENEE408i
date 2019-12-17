@@ -19,6 +19,7 @@ classNames = {0: 'background',
               80: 'toaster', 81: 'sink', 82: 'refrigerator', 84: 'book', 85: 'clock',
               86: 'vase', 87: 'scissors', 88: 'teddy bear', 89: 'hair drier', 90: 'toothbrush'}
 
+# Class for person tracking using MobileNet to capture a person and CSRT for tracking them
 class Tracker():
 
     def __init__(self, confidence):
@@ -29,11 +30,13 @@ class Tracker():
         self.confidence = confidence
         self.cv_tracker = cv2.TrackerCSRT()
 
+    # get class name from id
     def id_class_name(self, class_id, classes):
         for key, value in classes.items():
             if class_id == key:
                 return value
 
+    # initialize tracking model by using MobileNet to find a person. Pass that to the CSRT tracker
     def initialize(self, frame):
         (H,W) = frame.shape[:2]
         self.model.setInput(cv2.dnn.blobFromImage(frame, size=(300,300), swapRB=True))
@@ -51,7 +54,8 @@ class Tracker():
                             detection[5] * img_width, detection[6] * img_height)
                     self.cv_tracker.init(frame, to_track)
                     return to_track
-
+    
+    # Use CSRT tracker to track person
     def track(self, frame):
         (success, box) = self.cv_tracker.update(frame)
         if success:

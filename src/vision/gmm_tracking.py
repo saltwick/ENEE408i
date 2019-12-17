@@ -97,6 +97,7 @@ while True:
           
         pred_img = np.reshape(preds*255, [frame.shape[0], frame.shape[1], 1])
         cv2.imshow('pred', pred_img.astype('uint8'))
+
     fs = frame_id / (time.time() - start)
     cv2.putText(frame, str(round(fs,2)), (50,25), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0,255,0), 2)
     cv2.imshow('image', frame)

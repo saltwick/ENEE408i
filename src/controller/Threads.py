@@ -31,15 +31,18 @@ app = Flask(__name__)
 ask = Ask(app, '/')
 
 
-
+# Flag for when the robot should start moving
 TIME_TO_GO = False
 
 # Intialize Connection to Arduino
 AController = ArduinoController('/dev/ttyACM0', 38400)
+
+# global parameters
 count = 0
 HALT = False
 change_controls = False
 follow_me = True
+
 # Control structure that gets sent to Arduino
 controls = {
         "MoveForward": 0,
@@ -49,6 +52,8 @@ controls = {
         "TurnRight": 0,
         "Missing": 0
 }
+
+# Unused, handled by Arduino controller. Kept for integration
 prev_controls = {
         "MoveForward": 0,
         "MoveBackward": 0,
@@ -57,14 +62,19 @@ prev_controls = {
         "TurnRight": 0,
         "Missing": 0
 }
+
+# Distress sending parameters
 SEND_LOCATION = True
 DISTRESS_LOCATION = (-52,-33)
+
+# Store the robots pose globally 
 POSE = {
     "x": np.array([100]),
     "y": np.array([100]),
     "heading": 0
 }
 
+# Store tag information for waypoint navigation
 camera_angle = 0
 tag_not_found = True
 tag_to_find = 0
@@ -137,7 +147,8 @@ class Navigation_Thread(threading.Thread):
         prev_controls['Missing'] = controls['Missing']
         prev_controls['TurnLeft'] = controls['TurnLeft']
         prev_controls['TurnRight'] = controls['TurnRight']
-    
+   
+    # Function that uses waypoint navigation. Worked pretty well
     def goto_tag(self, desiredDistance):
         radiusInRangeLowerBound, radiusInRangeUpperBound = desiredDistance - 10, desiredDistance + 10
         centerRightBound, centerLeftBound = 900, 300
@@ -206,7 +217,7 @@ class Navigation_Thread(threading.Thread):
         if inPosition:
             print("Arrived at tag {}".format(tag_to_find))    
 
-        
+    # Function that uses April Tag Localization to navigate. Barely works 
     def goto(self, x,y):
         global POSE
         global controls
@@ -306,6 +317,7 @@ class Navigation_Thread(threading.Thread):
             print("Arrived at location {}".format((x,y)))
         return True
 
+    # Run the given sequence of tags
     def run(self):
         global TIME_TO_GO
         tags = [(0, 150), (41,150), (36,160), (24,120), (26,170), (33,180)]
@@ -324,49 +336,6 @@ class Navigation_Thread(threading.Thread):
 
         print("Navigation Thread Exiting")
         self.stop()
-"""
-        if HALT:
-            return
-        tag_to_find = 41
-        time.sleep(3)
-        self.goto_tag(150)
-        if HALT:
-            return
-        tag_to_find = 36
-        time.sleep(3)
-        self.goto_tag(160)
-        if HALT:
-            return
-        tag_to_find = 18
-        time.sleep(3)
-        self.goto_tag(170)
-        if HALT:
-            return
-        tag_to_find = 24
-        time.sleep(3)
-        self.goto_tag(140)
-        if HALT:
-            return
-        tag_to_find = 30
-        time.sleep(3)
-        self.goto_tag(150)
-        if HALT:
-            return
-        tag_to_find = 33
-        time.sleep(3)
-        self.goto_tag(150)
-        if HALT:
-            return 
-
-        global DISTRESS_LOCATION
-        time.sleep(3)
-        while True:
-            if DISTRESS_LOCATION != (100,100):
-                print("Going to {}".format(DISTRESS_LOCATION))
-                ret = self.goto(DISTRESS_LOCATION[0], DISTRESS_LOCATION[1])
-                if ret:
-                    break
-        """
 
 
         
@@ -384,6 +353,7 @@ class Location_Thread(threading.Thread):
         self.area_size = 160
         self.load_area()
 
+    # Code for creating lab area. Only ran once
     def create_area(self):
         hall_width = 32
         self.area = np.ones((self.area_size,self.area_size))*255
@@ -414,14 +384,16 @@ class Location_Thread(threading.Thread):
         # front wall
         self.area = cv2.line(self.area, (self.area_size//2 - 45, self.area_size//2), (self.area_size//2 + 55, self.area_size//2), (0,255,0), 2)
 
-
+    # Load the map from a png
     def load_area(self):
         self.area = cv2.imread('map-scaled.png')
         self.clean_area = self.area.copy()
 
+    # wipe the area. buggy, so we just reload 
     def clear_area(self):
         self.area = self.clean_area
-
+    
+    # old code for rotating camera 
     def set_camera_angle(self,wp):
         global POSE
         pose = [POSE['x'].item(), POSE['y'].item()]
@@ -462,11 +434,14 @@ class Location_Thread(threading.Thread):
         mul = 4
         d = 30
         while True:
+            # Get location and try to find tags
             frame = self.cap.read()
             wp = self.loc.get_worldPoints()
             camera_angle = self.set_camera_angle(wp) 
             ret, pose, yaw, heading = self.loc.locate(frame, 10)
             rad, x, y, tag_loc = self.loc.find_tag(frame, tag_to_find)
+
+            # Locating April Tags
             if not rad or not x or not y:
                 tag_not_found = True
                 tag_info['x'] = None
@@ -480,8 +455,7 @@ class Location_Thread(threading.Thread):
 
             #print(heading)
             if ret:
-               # print(degrees(yaw))
-                #yaw = yaw - camera_angle
+                # For drawing position on the map
                 h1 = (mul*pose[0] + mul*self.area_size//2, mul*pose[2] + mul*self.area_size//2)
                 h2 = (h1[0] - d*sin(radians(yaw)), h1[1] - d*cos(radians(yaw)))
                 h1 = tuple([int(x.item()) for x in h1])
@@ -514,6 +488,7 @@ class Location_Thread(threading.Thread):
 
 """
 Thread class for Vision System
+Handles person following - not used in the demonstration
 """
 class Vision_Thread(threading.Thread):
     def __init__(self,debug):
