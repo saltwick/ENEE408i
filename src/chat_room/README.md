@@ -1,9 +1,9 @@
-#Chat Room Code
+# Chat Room Package
 
-'client_multithread.py' is the original code we used to create the class
+This package contains the code for the chat room
 
-Client.py is the right one I think
+The server can be found in `server.py`
 
-server.py is the server
+`client_multithread.py` is a standalone client that can send and receive messages by typing into the terminal.
 
-I don't think we need the rest
+We based `Client.py` off of `client_multithread.py` to create a class for the client so we could call the send and receive functions of the client when needed
