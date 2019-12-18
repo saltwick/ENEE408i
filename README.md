@@ -13,6 +13,7 @@ Data we used is in data/, but most of this is unused
 Code is located in src/
 - Arduino code in src/arduino
 - Alexa code in src/alexa
+- Chat Room code in src/chat_room
 - Vision/Localization code in src/vision
 - Main code in src/controller/Threads.py
 
