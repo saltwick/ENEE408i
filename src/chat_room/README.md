@@ -1,4 +1,6 @@
-client_multithread.py is the original code we used to create the class so keep that
+#Chat Room Code
+
+'client_multithread.py' is the original code we used to create the class
 
 Client.py is the right one I think
 
