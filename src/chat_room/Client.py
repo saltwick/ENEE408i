@@ -35,6 +35,7 @@ class Client(threading.Thread):
         self.t2.start()
 
     def send(self, message):
+        # Encode message to bytes, prepare header and convert to bytes, like for username above, then send
         message = message.encode('utf-8')
         message_header = "{}:<{}".format(len(message), self.HEADER_LENGTH).encode('utf-8')
         self.client_socket.send(message_header + message)
@@ -63,7 +64,8 @@ class Client(threading.Thread):
                     message_header = self.client_socket.recv(self.HEADER_LENGTH)
                     message_length = int(message_header.decode('utf-8').strip())
                     message = self.client_socket.recv(message_length).decode('utf-8')
-                    # Print message
+                    
+                    # Add message to the received queue
                     if message != None:
                         self.received.put(message)
 

@@ -668,51 +668,47 @@ Thread class for Flask Server
 class Flask_Thread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
-
-        #self.app.add_url_rule('/', 'home', view_func=self.home)
         
     def run(self):
         app.run(debug=False, host='127.0.0.1')   
 
-    
+    # When the Big Al skill is launched Alexa will say this 
     @ask.launch
     def launched():
         return question("Yo. I'm Big Al. If you need some kneecaps broken, I'm your man").reprompt(
             "Give me a job or let me watch the Yanks sweep the Sox")
 
-
+    # When Alexa doesn't understand what you said she'll say this
     @ask.intent('AMAZON.FallbackIntent')
     def default():
         return question("Big Al don't know what you mean. Do you want me to break some kneecaps?").reprompt(
             "Give me a job or let me watch the Yanks sweep the Sox")
 
-    # @ask.intent('FollowIntent')
-    # def followMe(command):
-
-    #     return question("Big Al is on the prowl").reprompt(
-    #         "How much longer until I take care of this guy for good?")
-
+    # Intent to exit the Big Al skill and terminate all threads
     @ask.intent('SleepIntent')
     def sleep():
         global HALT
         HALT = True
         return statement("That'll be 500 big ones for today. Big Al out")
 
-
+    # Sends a distress signal through the client class below
     @ask.intent('DistressIntent')
     def distress():
-        
+        # Puts a message into the global queue to be sent my the client below
         passedMessage.put("distress: 2.25,3.14")
         
         return question("Distress signal sent").reprompt(
             "Move out. We got a job to do.")
     
+
+    #Starts navigation to a predetermined April tag
     @ask.intent('FindTagIntent')
     def distress():
         global TIME_TO_GO
         TIME_TO_GO = True
         return question("Move out. We got a job to do.").reprompt("We at the drop off yet?")
 
+    # Determines whether Big Al is in the classroom or the hallway. Not fully implemented. Just a skeleton
     @ask.intent('LocationIntent')
     def location():
         global POSE
@@ -726,6 +722,7 @@ class Flask_Thread(threading.Thread):
 
         return question("I am in the {}".format(s)).reprompt("Now that you know where I am, I suggest running away before someone gets hurt")
 
+    # Randomly selects a joke from the list below and tells it
     @ask.intent('JokeIntent')
     def joke():
         jokes = [

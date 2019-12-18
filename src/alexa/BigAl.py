@@ -7,7 +7,10 @@ import errno
 import random
 from queue import *
 
+# Creating a queue to put a message in for the Distress Intent
 passedMessage = Queue()
+
+# app and ask must be defined globally or Alexa will not work
 app = Flask(__name__)
 ask = Ask(app, '/')
 
@@ -15,47 +18,43 @@ class AlexaThread(threading.Thread):
     def __init__(self, app):
         threading.Thread.__init__(self)
         self.app = app
-
-        #self.app.add_url_rule('/', 'home', view_func=self.home)
         
     def run(self):
         self.app.run(debug=False, host='127.0.0.1')   
 
-    
+    # When the Big Al skill is launched Alexa will say this 
     @ask.launch
     def launched():
         return question("Yo. I'm Big Al. If you need some kneecaps broken, I'm your man").reprompt(
             "Give me a job or let me watch the Yanks sweep the Sox")
 
-
+    # When Alexa doesn't understand what you said she'll say this
     @ask.intent('AMAZON.FallbackIntent')
     def default():
         return question("Big Al don't know what you mean. Do you want me to break some kneecaps?").reprompt(
             "Give me a job or let me watch the Yanks sweep the Sox")
 
-    # @ask.intent('FollowIntent')
-    # def followMe(command):
-
-    #     return question("Big Al is on the prowl").reprompt(
-    #         "How much longer until I take care of this guy for good?")
-
+    # Intent to exit the Big Al skill
     @ask.intent('SleepIntent')
     def sleep():
         return statement("That'll be 500 big ones for today. Big Al out")
 
-
+    # Sends a distress signal through the client class below
     @ask.intent('DistressIntent')
     def distress():
         
-        passedMessage.put("distress: 2.25,3.14")
+        # Puts a message into the global queue to be sent my the client below
+        passedMessage.put("distress: Tag 14")
         
         return question("Distress signal sent").reprompt(
             "Move out. We got a job to do.")
 
+    # Determines whether Big Al is in the classroom or the hallway. Not fully implemented. Just a skeleton
     @ask.intent('LocationIntent')
     def location():
         return question("I am in the classroom").reprompt("Now that you know where I am, I suggest running away before someone gets hurt")
 
+    # Randomly selects a joke from the list below and tells it
     @ask.intent('JokeIntent')
     def joke():
         jokes = [
@@ -72,7 +71,9 @@ class AlexaThread(threading.Thread):
         print(value)
         return question(jokes[value][0]).reprompt(jokes[value][1])
 
-        
+
+# This is almost the same client code as in 'client_multithreading.py' in the chat_room folder
+# It is in here to test the distress signal
 class ClientThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
@@ -83,7 +84,7 @@ class ClientThread(threading.Thread):
 
         IP = "192.168.43.193"
         PORT = 1234
-        my_username = 'Frank' # Change to your team number
+        my_username = 'Team 3' # Change to your team number
 
         # Create a socket
         # socket.AF_INET - address family, IPv4, some otehr possible are AF_INET6, AF_BLUETOOTH, AF_UNIX
@@ -105,6 +106,7 @@ class ClientThread(threading.Thread):
         def send():
             while True:
                 message = None
+
                 if not passedMessage.empty():
                     message = passedMessage.get()
                 # Wait for user to input a message
